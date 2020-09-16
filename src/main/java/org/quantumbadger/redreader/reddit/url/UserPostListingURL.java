@@ -29,23 +29,23 @@ import java.util.List;
 
 public class UserPostListingURL extends PostListingURL {
 
-	public static UserPostListingURL getSaved(String username) {
+	public static UserPostListingURL getSaved(final String username) {
 		return new UserPostListingURL(Type.SAVED, username, null, null, null, null);
 	}
 
-	public static UserPostListingURL getHidden(String username) {
+	public static UserPostListingURL getHidden(final String username) {
 		return new UserPostListingURL(Type.HIDDEN, username, null, null, null, null);
 	}
 
-	public static UserPostListingURL getLiked(String username) {
+	public static UserPostListingURL getLiked(final String username) {
 		return new UserPostListingURL(Type.UPVOTED, username, null, null, null, null);
 	}
 
-	public static UserPostListingURL getDisliked(String username) {
+	public static UserPostListingURL getDisliked(final String username) {
 		return new UserPostListingURL(Type.DOWNVOTED, username, null, null, null, null);
 	}
 
-	public static UserPostListingURL getSubmitted(String username) {
+	public static UserPostListingURL getSubmitted(final String username) {
 		return new UserPostListingURL(Type.SUBMITTED, username, null, null, null, null);
 	}
 
@@ -55,7 +55,13 @@ public class UserPostListingURL extends PostListingURL {
 	public final Integer limit;
 	public final String before, after;
 
-	UserPostListingURL(Type type, String user, PostSort order, Integer limit, String before, String after) {
+	UserPostListingURL(
+			final Type type,
+			final String user,
+			final PostSort order,
+			final Integer limit,
+			final String before,
+			final String after) {
 		this.type = type;
 		this.user = user;
 		this.order = order == PostSort.RISING ? PostSort.NEW : order;
@@ -69,16 +75,16 @@ public class UserPostListingURL extends PostListingURL {
 	}
 
 	@Override
-	public UserPostListingURL after(String newAfter) {
+	public UserPostListingURL after(final String newAfter) {
 		return new UserPostListingURL(type, user, order, limit, before, newAfter);
 	}
 
 	@Override
-	public UserPostListingURL limit(Integer newLimit) {
+	public UserPostListingURL limit(final Integer newLimit) {
 		return new UserPostListingURL(type, user, order, newLimit, before, after);
 	}
 
-	public UserPostListingURL sort(PostSort newOrder) {
+	public UserPostListingURL sort(final PostSort newOrder) {
 		return new UserPostListingURL(type, user, newOrder, limit, before, after);
 	}
 
@@ -87,7 +93,7 @@ public class UserPostListingURL extends PostListingURL {
 		return order;
 	}
 
-	public static UserPostListingURL parse(Uri uri) {
+	public static UserPostListingURL parse(final Uri uri) {
 
 		Integer limit = null;
 		String before = null, after = null;
@@ -103,7 +109,8 @@ public class UserPostListingURL extends PostListingURL {
 			} else if(parameterKey.equalsIgnoreCase("limit")) {
 				try {
 					limit = Integer.parseInt(uri.getQueryParameter(parameterKey));
-				} catch(Throwable ignored) {}
+				} catch(final Throwable ignored) {
+				}
 			}
 		}
 
@@ -111,10 +118,12 @@ public class UserPostListingURL extends PostListingURL {
 		{
 			final List<String> pathSegmentsList = uri.getPathSegments();
 
-			final ArrayList<String> pathSegmentsFiltered = new ArrayList<>(pathSegmentsList.size());
+			final ArrayList<String> pathSegmentsFiltered = new ArrayList<>(
+					pathSegmentsList.size());
 			for(String segment : pathSegmentsList) {
 
-				while(General.asciiLowercase(segment).endsWith(".json") || General.asciiLowercase(segment).endsWith(".xml")) {
+				while(General.asciiLowercase(segment).endsWith(".json")
+						|| General.asciiLowercase(segment).endsWith(".xml")) {
 					segment = segment.substring(0, segment.lastIndexOf('.'));
 				}
 
@@ -123,12 +132,15 @@ public class UserPostListingURL extends PostListingURL {
 				}
 			}
 
-			pathSegments = pathSegmentsFiltered.toArray(new String[pathSegmentsFiltered.size()]);
+			pathSegments
+					= pathSegmentsFiltered.toArray(new String[pathSegmentsFiltered.size()]);
 		}
 
 		final PostSort order;
 		if(pathSegments.length > 0) {
-			order = PostSort.parse(uri.getQueryParameter("sort"), uri.getQueryParameter("t"));
+			order = PostSort.parse(
+					uri.getQueryParameter("sort"),
+					uri.getQueryParameter("t"));
 		} else {
 			order = null;
 		}
@@ -137,7 +149,8 @@ public class UserPostListingURL extends PostListingURL {
 			return null;
 		}
 
-		if(!pathSegments[0].equalsIgnoreCase("user") && !pathSegments[0].equalsIgnoreCase("u")) {
+		if(!pathSegments[0].equalsIgnoreCase("user") && !pathSegments[0].equalsIgnoreCase(
+				"u")) {
 			return null;
 		}
 
@@ -148,7 +161,7 @@ public class UserPostListingURL extends PostListingURL {
 
 		try {
 			type = Type.valueOf(typeName);
-		} catch(Throwable t) {
+		} catch(final Throwable t) {
 			return null;
 		}
 
@@ -158,8 +171,9 @@ public class UserPostListingURL extends PostListingURL {
 	@Override
 	public Uri generateJsonUri() {
 
-		Uri.Builder builder = new Uri.Builder();
-		builder.scheme(Constants.Reddit.getScheme()).authority(Constants.Reddit.getDomain());
+		final Uri.Builder builder = new Uri.Builder();
+		builder.scheme(Constants.Reddit.getScheme())
+				.authority(Constants.Reddit.getDomain());
 
 		builder.appendEncodedPath("user");
 		builder.appendPath(user);
@@ -187,14 +201,15 @@ public class UserPostListingURL extends PostListingURL {
 	}
 
 	@Override
-	public @RedditURLParser.PathType int pathType() {
+	public @RedditURLParser.PathType
+	int pathType() {
 		return RedditURLParser.USER_POST_LISTING_URL;
 	}
 
 	@Override
 	public String humanReadablePath() {
 
-		String path = super.humanReadablePath();
+		final String path = super.humanReadablePath();
 
 		if(order == null || type != Type.SUBMITTED) {
 			return path;
@@ -215,7 +230,7 @@ public class UserPostListingURL extends PostListingURL {
 	}
 
 	@Override
-	public String humanReadableName(Context context, boolean shorter) {
+	public String humanReadableName(final Context context, final boolean shorter) {
 
 		final String name;
 

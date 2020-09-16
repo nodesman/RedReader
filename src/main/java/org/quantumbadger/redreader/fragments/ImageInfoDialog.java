@@ -19,7 +19,7 @@ package org.quantumbadger.redreader.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.widget.LinearLayout;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.image.ImageInfo;
@@ -38,31 +38,43 @@ public final class ImageInfoDialog extends PropertiesDialog {
 	}
 
 	@Override
-	protected String getTitle(Context context) {
+	protected String getTitle(final Context context) {
 		return context.getString(R.string.props_image_title);
 	}
 
 	@Override
-	protected void prepare(AppCompatActivity context, LinearLayout items) {
+	protected void prepare(final AppCompatActivity context, final LinearLayout items) {
 
 		final ImageInfo info = getArguments().getParcelable("info");
 
 		boolean first = true;
 
 		if(info.title != null && info.title.trim().length() > 0) {
-			items.addView(propView(context, R.string.props_title, info.title.trim(), first));
+			items.addView(propView(
+					context,
+					R.string.props_title,
+					info.title.trim(),
+					first));
 			first = false;
 		}
 
 		if(info.caption != null && info.caption.trim().length() > 0) {
-			items.addView(propView(context, R.string.props_caption, info.caption.trim(), first));
+			items.addView(propView(
+					context,
+					R.string.props_caption,
+					info.caption.trim(),
+					first));
 			first = false;
 		}
 
 		items.addView(propView(context, R.string.props_url, info.urlOriginal, first));
 
 		if(info.width != null && info.height != null) {
-			items.addView(propView(context, R.string.props_resolution, info.width + " x " + info.height, false));
+			items.addView(propView(
+					context,
+					R.string.props_resolution,
+					info.width + " x " + info.height,
+					false));
 		}
 	}
 }

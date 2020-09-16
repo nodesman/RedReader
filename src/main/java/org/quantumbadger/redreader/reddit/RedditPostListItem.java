@@ -17,8 +17,8 @@
 
 package org.quantumbadger.redreader.reddit;
 
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.ViewGroup;
 import org.quantumbadger.redreader.adapters.GroupedRecyclerViewAdapter;
 import org.quantumbadger.redreader.fragments.PostListingFragment;
@@ -59,7 +59,8 @@ public class RedditPostListItem extends GroupedRecyclerViewAdapter.Item {
 				mActivity,
 				mLeftHandedMode);
 
-		return new RecyclerView.ViewHolder(view) {};
+		return new RecyclerView.ViewHolder(view) {
+		};
 	}
 
 	@Override

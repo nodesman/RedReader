@@ -17,7 +17,7 @@
 
 package org.quantumbadger.redreader.views;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import org.quantumbadger.redreader.common.AndroidCommon;
 
@@ -29,7 +29,8 @@ public class RRChoreographerLegacy extends RRChoreographer implements Runnable {
 	private int mCallbackCount = 0;
 	private boolean mPosted = false;
 
-	private RRChoreographerLegacy() {}
+	private RRChoreographerLegacy() {
+	}
 
 	@Override
 	public void postFrameCallback(@NonNull final Callback callback) {

@@ -29,6 +29,7 @@
 
 	<CheckBoxPreference android:title="@string/pref_behaviour_usecustomtabs_title"
                         android:key="@string/pref_behaviour_usecustomtabs_key"
+						android:dependency="@string/pref_behaviour_useinternalbrowser_key"
                         android:summary="@string/pref_behaviour_usecustomtabs_summary"
                         android:defaultValue="false"/>
 
@@ -54,11 +55,29 @@
 						android:entryValues="@array/pref_behaviour_postsort_array_return"
 						android:defaultValue="hot"/>
 
+		<ListPreference android:title="@string/pref_behaviour_user_postsort_title"
+						android:key="@string/pref_behaviour_user_postsort_key"
+						android:entries="@array/pref_behaviour_user_postsort_array"
+						android:entryValues="@array/pref_behaviour_user_postsort_array_return"
+						android:defaultValue="new"/>
+
+		<ListPreference android:title="@string/pref_behaviour_multi_postsort_title"
+						android:key="@string/pref_behaviour_multi_postsort_key"
+						android:entries="@array/pref_behaviour_multi_postsort_array"
+						android:entryValues="@array/pref_behaviour_multi_postsort_array_return"
+						android:defaultValue="hot"/>
+
         <ListPreference android:title="@string/pref_behaviour_commentsort"
                         android:key="@string/pref_behaviour_commentsort_key"
                         android:entries="@array/pref_behaviour_commentsort_array"
                         android:entryValues="@array/pref_behaviour_commentsort_array_return"
                         android:defaultValue="best"/>
+
+		<ListPreference android:title="@string/pref_behaviour_user_commentsort_title"
+						android:key="@string/pref_behaviour_user_commentsort_key"
+						android:entries="@array/pref_behaviour_user_commentsort_array"
+						android:entryValues="@array/pref_behaviour_user_commentsort_array_return"
+						android:defaultValue="new"/>
 
 		<ListPreference android:title="@string/pref_behaviour_pinned_subredditsort"
 						android:key="@string/pref_behaviour_pinned_subredditsort_key"
@@ -166,6 +185,10 @@
 		<CheckBoxPreference android:title="@string/pref_behaviour_sharing_share_text_title"
 				android:key="@string/pref_behaviour_sharing_share_text_key"
 				android:defaultValue="true"/>
+
+		<CheckBoxPreference android:title="@string/pref_behaviour_sharing_share_dialog_title"
+				android:key="@string/pref_behaviour_sharing_share_dialog_key"
+				android:defaultValue="false"/>
 
 	</PreferenceCategory>
 

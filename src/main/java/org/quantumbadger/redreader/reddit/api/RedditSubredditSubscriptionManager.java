@@ -18,9 +18,11 @@
 package org.quantumbadger.redreader.reddit.api;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
+import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.account.RedditAccount;
 import org.quantumbadger.redreader.activities.BugReportActivity;
 import org.quantumbadger.redreader.cache.CacheManager;
@@ -28,8 +30,10 @@ import org.quantumbadger.redreader.cache.CacheRequest;
 import org.quantumbadger.redreader.common.AndroidCommon;
 import org.quantumbadger.redreader.common.General;
 import org.quantumbadger.redreader.common.RRError;
+import org.quantumbadger.redreader.common.RRTime;
 import org.quantumbadger.redreader.common.TimestampBound;
 import org.quantumbadger.redreader.common.UnexpectedInternalStateException;
+import org.quantumbadger.redreader.common.collections.CollectionStream;
 import org.quantumbadger.redreader.common.collections.WeakReferenceListManager;
 import org.quantumbadger.redreader.io.RawObjectDB;
 import org.quantumbadger.redreader.io.RequestResponseHandler;
@@ -38,19 +42,36 @@ import org.quantumbadger.redreader.reddit.APIResponseHandler;
 import org.quantumbadger.redreader.reddit.RedditAPI;
 import org.quantumbadger.redreader.reddit.RedditSubredditHistory;
 import org.quantumbadger.redreader.reddit.RedditSubredditManager;
-import org.quantumbadger.redreader.reddit.things.RedditSubreddit;
+import org.quantumbadger.redreader.reddit.things.InvalidSubredditNameException;
+import org.quantumbadger.redreader.reddit.things.SubredditCanonicalId;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 
 public class RedditSubredditSubscriptionManager {
 
+	public class ListenerContext {
+
+		private final SubredditSubscriptionStateChangeListener mListener;
+
+		private ListenerContext(final SubredditSubscriptionStateChangeListener listener) {
+			mListener = listener;
+		}
+
+		public void removeListener() {
+			synchronized(RedditSubredditSubscriptionManager.this) {
+				listeners.remove(mListener);
+			}
+		}
+	}
+
 	private static final String TAG = "SubscriptionManager";
 
-	public enum SubredditSubscriptionState { SUBSCRIBED, SUBSCRIBING, UNSUBSCRIBING, NOT_SUBSCRIBED }
-
-	private final SubredditSubscriptionStateChangeNotifier notifier = new SubredditSubscriptionStateChangeNotifier();
-	private final WeakReferenceListManager<SubredditSubscriptionStateChangeListener> listeners
+	private final SubredditSubscriptionStateChangeNotifier notifier =
+			new SubredditSubscriptionStateChangeNotifier();
+	private final WeakReferenceListManager<SubredditSubscriptionStateChangeListener>
+			listeners
 			= new WeakReferenceListManager<>();
 
 	private static RedditSubredditSubscriptionManager singleton;
@@ -61,24 +82,39 @@ public class RedditSubredditSubscriptionManager {
 
 	private static RawObjectDB<String, WritableHashSet> db = null;
 
-	private WritableHashSet subscriptions;
-	private final HashSet<String> pendingSubscriptions = new HashSet<>(), pendingUnsubscriptions = new HashSet<>();
+	@Nullable private WritableHashSet subscriptions;
+	@NonNull private final HashSet<SubredditCanonicalId> pendingSubscriptions =
+			new HashSet<>();
+	@NonNull private final HashSet<SubredditCanonicalId> pendingUnsubscriptions =
+			new HashSet<>();
 
-	public static synchronized RedditSubredditSubscriptionManager getSingleton(final Context context, final RedditAccount account) {
+	private long mLastUpdateRequestTime;
+
+	public static synchronized RedditSubredditSubscriptionManager getSingleton(
+			final Context context,
+			final RedditAccount account) {
 
 		if(db == null) {
-			db = new RawObjectDB<>(context, "rr_subscriptions.db", WritableHashSet.class);
+			db = new RawObjectDB<>(
+					context.getApplicationContext(),
+					"rr_subscriptions.db",
+					WritableHashSet.class);
 		}
 
-		if(singleton == null || !account.equals(RedditSubredditSubscriptionManager.singletonAccount)) {
-			singleton = new RedditSubredditSubscriptionManager(account, context);
+		if(singleton == null
+				|| !account.equals(RedditSubredditSubscriptionManager.singletonAccount)) {
+			singleton = new RedditSubredditSubscriptionManager(
+					account,
+					context.getApplicationContext());
 			RedditSubredditSubscriptionManager.singletonAccount = account;
 		}
+
+		singleton.triggerUpdateIfNotReady();
 
 		return singleton;
 	}
 
-	private RedditSubredditSubscriptionManager(RedditAccount user, Context context) {
+	private RedditSubredditSubscriptionManager(final RedditAccount user, final Context context) {
 
 		this.user = user;
 		this.context = context;
@@ -86,75 +122,100 @@ public class RedditSubredditSubscriptionManager {
 		subscriptions = db.getById(user.getCanonicalUsername());
 
 		if(subscriptions != null) {
-			addToHistory(user, subscriptions.toHashset());
+			addToHistory(user, getSubscriptionList());
 		}
 	}
 
-	public void addListener(SubredditSubscriptionStateChangeListener listener) {
+	public synchronized ListenerContext addListener(
+			final SubredditSubscriptionStateChangeListener listener) {
+
 		listeners.add(listener);
+		return new ListenerContext(listener);
 	}
 
 	public synchronized boolean areSubscriptionsReady() {
 		return subscriptions != null;
 	}
 
-	public synchronized SubredditSubscriptionState getSubscriptionState(final String subredditCanonicalId) {
+	@Nullable
+	public synchronized SubredditSubscriptionState getSubscriptionState(
+			final SubredditCanonicalId id) {
 
-		if(pendingSubscriptions.contains(subredditCanonicalId)) return SubredditSubscriptionState.SUBSCRIBING;
-		else if(pendingUnsubscriptions.contains(subredditCanonicalId)) return SubredditSubscriptionState.UNSUBSCRIBING;
-		else if(subscriptions.toHashset().contains(subredditCanonicalId)) return SubredditSubscriptionState.SUBSCRIBED;
-		else return SubredditSubscriptionState.NOT_SUBSCRIBED;
-	}
+		if(subscriptions == null) {
+			return null;
+		}
 
-	private synchronized void onSubscriptionAttempt(final String subredditCanonicalId) {
-		pendingSubscriptions.add(subredditCanonicalId);
-		listeners.map(notifier, SubredditSubscriptionChangeType.SUBSCRIPTION_ATTEMPTED);
-	}
-
-	private synchronized void onUnsubscriptionAttempt(final String subredditCanonicalId) {
-		pendingUnsubscriptions.add(subredditCanonicalId);
-		listeners.map(notifier, SubredditSubscriptionChangeType.UNSUBSCRIPTION_ATTEMPTED);
-	}
-
-	private synchronized void onSubscriptionChangeAttemptFailed(final String subredditCanonicalId) {
-		pendingUnsubscriptions.remove(subredditCanonicalId);
-		pendingSubscriptions.remove(subredditCanonicalId);
-		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
-	}
-
-	private synchronized void onSubscriptionAttemptSuccess(final String subredditCanonicalId) {
-		pendingSubscriptions.remove(subredditCanonicalId);
-		subscriptions.toHashset().add(subredditCanonicalId);
-		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
-	}
-
-	private synchronized void onUnsubscriptionAttemptSuccess(final String subredditCanonicalId) {
-		pendingUnsubscriptions.remove(subredditCanonicalId);
-		subscriptions.toHashset().remove(subredditCanonicalId);
-		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
-	}
-
-	private static void addToHistory(final RedditAccount account, final HashSet<String> newSubscriptions)
-	{
-		for(final String sub : newSubscriptions)
-		{
-			try
-			{
-				RedditSubredditHistory.addSubreddit(account, sub);
-			}
-			catch(RedditSubreddit.InvalidSubredditNameException e)
-			{
-				Log.e(TAG, "Invalid subreddit name " + sub, e);
-			}
+		if(pendingSubscriptions.contains(id)) {
+			return SubredditSubscriptionState.SUBSCRIBING;
+		} else if(pendingUnsubscriptions.contains(id)) {
+			return SubredditSubscriptionState.UNSUBSCRIBING;
+		} else if(subscriptions.toHashset().contains(id.toString())) {
+			return SubredditSubscriptionState.SUBSCRIBED;
+		} else {
+			return SubredditSubscriptionState.NOT_SUBSCRIBED;
 		}
 	}
 
-	private synchronized void onNewSubscriptionListReceived(final HashSet<String> newSubscriptions, final long timestamp) {
+	private synchronized void onSubscriptionAttempt(final SubredditCanonicalId id) {
+		pendingSubscriptions.add(id);
+		listeners.map(notifier, SubredditSubscriptionChangeType.SUBSCRIPTION_ATTEMPTED);
+	}
+
+	private synchronized void onUnsubscriptionAttempt(final SubredditCanonicalId id) {
+		pendingUnsubscriptions.add(id);
+		listeners.map(notifier, SubredditSubscriptionChangeType.UNSUBSCRIPTION_ATTEMPTED);
+	}
+
+	private synchronized void onSubscriptionChangeAttemptFailed(final SubredditCanonicalId id) {
+		pendingUnsubscriptions.remove(id);
+		pendingSubscriptions.remove(id);
+		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
+	}
+
+	private synchronized void onSubscriptionAttemptSuccess(final SubredditCanonicalId id) {
+
+		General.quickToast(context, context.getApplicationContext().getString(
+				R.string.subscription_successful,
+				id.toString()));
+
+		pendingSubscriptions.remove(id);
+		subscriptions.toHashset().add(id.toString());
+		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
+	}
+
+	private synchronized void onUnsubscriptionAttemptSuccess(final SubredditCanonicalId id) {
+
+		General.quickToast(context, context.getApplicationContext().getString(
+				R.string.unsubscription_successful,
+				id.toString()));
+
+		pendingUnsubscriptions.remove(id);
+		subscriptions.toHashset().remove(id.toString());
+		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
+	}
+
+	private static void addToHistory(
+			final RedditAccount account,
+			final Collection<SubredditCanonicalId> newSubscriptions) {
+
+		RedditSubredditHistory.addSubreddits(account, newSubscriptions);
+	}
+
+	private synchronized void onNewSubscriptionListReceived(
+			final HashSet<SubredditCanonicalId> newSubscriptions,
+			final long timestamp) {
 
 		pendingSubscriptions.clear();
 		pendingUnsubscriptions.clear();
 
-		subscriptions = new WritableHashSet(newSubscriptions, timestamp, user.getCanonicalUsername());
+		final HashSet<String> newSubscriptionsStrings =
+				new CollectionStream<>(newSubscriptions)
+						.map(SubredditCanonicalId::toString).collect(new HashSet<>());
+
+		subscriptions = new WritableHashSet(
+				newSubscriptionsStrings,
+				timestamp,
+				user.getCanonicalUsername());
 
 		// TODO threaded? or already threaded due to cache manager
 		db.put(subscriptions);
@@ -164,15 +225,38 @@ public class RedditSubredditSubscriptionManager {
 		listeners.map(notifier, SubredditSubscriptionChangeType.LIST_UPDATED);
 	}
 
-	public synchronized ArrayList<String> getSubscriptionList() {
-		return new ArrayList<>(subscriptions.toHashset());
+	@Nullable
+	public synchronized ArrayList<SubredditCanonicalId> getSubscriptionList() {
+
+		if(subscriptions == null) {
+			return null;
+		}
+
+		return new CollectionStream<>(subscriptions.toHashset())
+				.mapRethrowExceptions(SubredditCanonicalId::new)
+				.collect(new ArrayList<>());
 	}
 
-	public void triggerUpdate(final RequestResponseHandler<HashSet<String>, SubredditRequestFailure> handler, TimestampBound timestampBound) {
+	public synchronized void triggerUpdateIfNotReady() {
+		if(!areSubscriptionsReady()
+				&& (mLastUpdateRequestTime == 0
+				|| RRTime.since(mLastUpdateRequestTime) > RRTime.secsToMs(10))) {
+			triggerUpdate(null, TimestampBound.notOlderThan(RRTime.hoursToMs(1)));
+		}
+	}
 
-		if(subscriptions != null && timestampBound.verifyTimestamp(subscriptions.getTimestamp())) {
+	public synchronized void triggerUpdate(
+			@Nullable final RequestResponseHandler<
+					HashSet<SubredditCanonicalId>,
+					SubredditRequestFailure> handler,
+			@NonNull final TimestampBound timestampBound) {
+
+		if(subscriptions != null
+				&& timestampBound.verifyTimestamp(subscriptions.getTimestamp())) {
 			return;
 		}
+
+		mLastUpdateRequestTime = RRTime.utcCurrentTimeMillis();
 
 		new RedditAPIIndividualSubredditListRequester(context, user).performRequest(
 				RedditSubredditManager.SubredditListType.SUBSCRIBED,
@@ -181,58 +265,86 @@ public class RedditSubredditSubscriptionManager {
 
 					// TODO handle failed requests properly -- retry? then notify listeners
 					@Override
-					public void onRequestFailed(SubredditRequestFailure failureReason) {
-						if(handler != null) handler.onRequestFailed(failureReason);
+					public void onRequestFailed(final SubredditRequestFailure failureReason) {
+						if(handler != null) {
+							handler.onRequestFailed(failureReason);
+						}
 					}
 
 					@Override
-					public void onRequestSuccess(WritableHashSet result, long timeCached) {
-						final HashSet<String> newSubscriptions = result.toHashset();
+					public void onRequestSuccess(
+							final WritableHashSet result,
+							final long timeCached) {
+						final HashSet<String> newSubscriptionStrings = result.toHashset();
+
+						final HashSet<SubredditCanonicalId> newSubscriptions =
+								new HashSet<>();
+
+						for(final String id : newSubscriptionStrings) {
+							try {
+								newSubscriptions.add(new SubredditCanonicalId(id));
+							} catch(final InvalidSubredditNameException e) {
+								Log.e(TAG, "Ignoring invalid subreddit name " + id, e);
+							}
+						}
+
 						onNewSubscriptionListReceived(newSubscriptions, timeCached);
-						if(handler != null) handler.onRequestSuccess(newSubscriptions, timeCached);
+						if(handler != null) {
+							handler.onRequestSuccess(newSubscriptions, timeCached);
+						}
 					}
 				}
 		);
 
 	}
 
-	public void subscribe(final String subredditCanonicalId, final AppCompatActivity activity) {
+	public void subscribe(
+			final SubredditCanonicalId id,
+			final AppCompatActivity activity) {
 
 		RedditAPI.subscriptionAction(
 				CacheManager.getInstance(context),
-				new SubredditActionResponseHandler(activity, RedditAPI.SUBSCRIPTION_ACTION_SUBSCRIBE, subredditCanonicalId),
+				new SubredditActionResponseHandler(
+						activity,
+						RedditAPI.SUBSCRIPTION_ACTION_SUBSCRIBE,
+						id),
 				user,
-				subredditCanonicalId,
+				id,
 				RedditAPI.SUBSCRIPTION_ACTION_SUBSCRIBE,
-				context
-		);
+				context);
 
-		onSubscriptionAttempt(subredditCanonicalId);
+		onSubscriptionAttempt(id);
 	}
 
-	public void unsubscribe(final String subredditCanonicalId, final AppCompatActivity activity) {
+	public void unsubscribe(
+			final SubredditCanonicalId id,
+			final AppCompatActivity activity) {
 
 		RedditAPI.subscriptionAction(
 				CacheManager.getInstance(context),
-				new SubredditActionResponseHandler(activity, RedditAPI.SUBSCRIPTION_ACTION_UNSUBSCRIBE, subredditCanonicalId),
+				new SubredditActionResponseHandler(
+						activity,
+						RedditAPI.SUBSCRIPTION_ACTION_UNSUBSCRIBE,
+						id),
 				user,
-				subredditCanonicalId,
+				id,
 				RedditAPI.SUBSCRIPTION_ACTION_UNSUBSCRIBE,
-				context
-		);
+				context);
 
-		onUnsubscriptionAttempt(subredditCanonicalId);
+		onUnsubscriptionAttempt(id);
 	}
 
-	private class SubredditActionResponseHandler extends APIResponseHandler.ActionResponseHandler {
+	private class SubredditActionResponseHandler
+			extends APIResponseHandler.ActionResponseHandler {
 
 		private final @RedditAPI.RedditSubredditAction int action;
 		private final AppCompatActivity activity;
-		private final String canonicalName;
+		private final SubredditCanonicalId canonicalName;
 
-		protected SubredditActionResponseHandler(AppCompatActivity activity,
-												 @RedditAPI.RedditSubredditAction int action,
-												 String canonicalName) {
+		protected SubredditActionResponseHandler(
+				final AppCompatActivity activity,
+				@RedditAPI.RedditSubredditAction final int action,
+				final SubredditCanonicalId canonicalName) {
 			super(activity);
 			this.activity = activity;
 			this.action = action;
@@ -250,21 +362,39 @@ public class RedditSubredditSubscriptionManager {
 					onUnsubscriptionAttemptSuccess(canonicalName);
 					break;
 			}
-
-			triggerUpdate(null, TimestampBound.NONE);
 		}
 
 		@Override
-		protected void onCallbackException(Throwable t) {
+		protected void onCallbackException(final Throwable t) {
 			BugReportActivity.handleGlobalError(context, t);
 		}
 
 		@Override
-		protected void onFailure(@CacheRequest.RequestFailureType int type, Throwable t, Integer status, String readableMessage) {
-			onSubscriptionChangeAttemptFailed(canonicalName);
-			if(t != null) t.printStackTrace();
+		protected void onFailure(
+				@CacheRequest.RequestFailureType final int type,
+				final Throwable t,
+				final Integer status,
+				final String readableMessage) {
 
-			final RRError error = General.getGeneralErrorForFailure(context, type, t, status, null);
+			if(status != null && status == 404) {
+				// Weirdly, reddit returns a 404 if we were already subscribed/unsubscribed to
+				// this subreddit.
+
+				if(action == RedditAPI.SUBSCRIPTION_ACTION_SUBSCRIBE
+						|| action == RedditAPI.SUBSCRIPTION_ACTION_UNSUBSCRIBE) {
+
+					onSuccess(null);
+					return;
+				}
+			}
+
+			onSubscriptionChangeAttemptFailed(canonicalName);
+			if(t != null) {
+				t.printStackTrace();
+			}
+
+			final RRError error =
+					General.getGeneralErrorForFailure(context, type, t, status, null);
 			AndroidCommon.UI_THREAD_HANDLER.post(new Runnable() {
 				@Override
 				public void run() {
@@ -274,7 +404,7 @@ public class RedditSubredditSubscriptionManager {
 		}
 
 		@Override
-		protected void onFailure(APIFailureType type) {
+		protected void onFailure(final APIFailureType type) {
 			onSubscriptionChangeAttemptFailed(canonicalName);
 			final RRError error = General.getGeneralErrorForFailure(context, type);
 			AndroidCommon.UI_THREAD_HANDLER.post(new Runnable() {
@@ -291,32 +421,49 @@ public class RedditSubredditSubscriptionManager {
 	}
 
 	public interface SubredditSubscriptionStateChangeListener {
-		void onSubredditSubscriptionListUpdated(RedditSubredditSubscriptionManager subredditSubscriptionManager);
+		void onSubredditSubscriptionListUpdated(
+				RedditSubredditSubscriptionManager subredditSubscriptionManager);
 
-		void onSubredditSubscriptionAttempted(RedditSubredditSubscriptionManager subredditSubscriptionManager);
+		void onSubredditSubscriptionAttempted(
+				RedditSubredditSubscriptionManager subredditSubscriptionManager);
 
-		void onSubredditUnsubscriptionAttempted(RedditSubredditSubscriptionManager subredditSubscriptionManager);
+		void onSubredditUnsubscriptionAttempted(
+				RedditSubredditSubscriptionManager subredditSubscriptionManager);
 	}
 
-	private enum SubredditSubscriptionChangeType {LIST_UPDATED, SUBSCRIPTION_ATTEMPTED, UNSUBSCRIPTION_ATTEMPTED}
+	private enum SubredditSubscriptionChangeType {
+		LIST_UPDATED,
+		SUBSCRIPTION_ATTEMPTED,
+		UNSUBSCRIPTION_ATTEMPTED
+	}
 
 	private class SubredditSubscriptionStateChangeNotifier
-			implements WeakReferenceListManager.ArgOperator<SubredditSubscriptionStateChangeListener, SubredditSubscriptionChangeType> {
+			implements WeakReferenceListManager.ArgOperator<
+			SubredditSubscriptionStateChangeListener,
+			SubredditSubscriptionChangeType> {
 
-		public void operate(SubredditSubscriptionStateChangeListener listener, SubredditSubscriptionChangeType changeType) {
+		@Override
+		public void operate(
+				final SubredditSubscriptionStateChangeListener listener,
+				final SubredditSubscriptionChangeType changeType) {
 
 			switch(changeType) {
 				case LIST_UPDATED:
-					listener.onSubredditSubscriptionListUpdated(RedditSubredditSubscriptionManager.this);
+					listener.onSubredditSubscriptionListUpdated(
+							RedditSubredditSubscriptionManager.this);
 					break;
 				case SUBSCRIPTION_ATTEMPTED:
-					listener.onSubredditSubscriptionAttempted(RedditSubredditSubscriptionManager.this);
+					listener.onSubredditSubscriptionAttempted(
+							RedditSubredditSubscriptionManager.this);
 					break;
 				case UNSUBSCRIPTION_ATTEMPTED:
-					listener.onSubredditUnsubscriptionAttempted(RedditSubredditSubscriptionManager.this);
+					listener.onSubredditUnsubscriptionAttempted(
+							RedditSubredditSubscriptionManager.this);
 					break;
 				default:
-					throw new UnexpectedInternalStateException("Invalid SubredditSubscriptionChangeType " + changeType.toString());
+					throw new UnexpectedInternalStateException(
+							"Invalid SubredditSubscriptionChangeType "
+									+ changeType.toString());
 			}
 		}
 	}

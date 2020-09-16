@@ -21,16 +21,19 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.AppCompatDialogFragment;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDialogFragment;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.common.General;
+
+import java.util.Locale;
 
 public abstract class PropertiesDialog extends AppCompatDialogFragment {
 
@@ -40,6 +43,7 @@ public abstract class PropertiesDialog extends AppCompatDialogFragment {
 	private volatile boolean alreadyCreated = false;
 
 	protected abstract String getTitle(Context context);
+
 	protected abstract void prepare(AppCompatActivity context, LinearLayout items);
 
 	@NonNull
@@ -47,7 +51,9 @@ public abstract class PropertiesDialog extends AppCompatDialogFragment {
 	public final Dialog onCreateDialog(final Bundle savedInstanceState) {
 		super.onCreateDialog(savedInstanceState);
 
-		if(alreadyCreated) return getDialog();
+		if(alreadyCreated) {
+			return getDialog();
+		}
 		alreadyCreated = true;
 
 		final AppCompatActivity context = (AppCompatActivity)getActivity();
@@ -78,19 +84,41 @@ public abstract class PropertiesDialog extends AppCompatDialogFragment {
 
 		builder.setNeutralButton(R.string.dialog_close, null);
 
+		interceptBuilder(builder);
+
 		return builder.create();
 	}
 
-	protected final LinearLayout propView(final Context context, final int titleRes, final int textRes, final boolean firstInList) {
-		return propView(context, context.getString(titleRes), getString(textRes), firstInList);
+	protected void interceptBuilder(@NonNull final AlertDialog.Builder builder) {
+		// Do nothing by default
 	}
 
-	protected final LinearLayout propView(final Context context, final int titleRes, final CharSequence text, final boolean firstInList) {
+	protected final LinearLayout propView(
+			final Context context,
+			final int titleRes,
+			final int textRes,
+			final boolean firstInList) {
+		return propView(
+				context,
+				context.getString(titleRes),
+				getString(textRes),
+				firstInList);
+	}
+
+	protected final LinearLayout propView(
+			final Context context,
+			final int titleRes,
+			final CharSequence text,
+			final boolean firstInList) {
 		return propView(context, context.getString(titleRes), text, firstInList);
 	}
 
 	// TODO xml?
-	protected final LinearLayout propView(final Context context, final String title, final CharSequence text, final boolean firstInList) {
+	protected final LinearLayout propView(
+			final Context context,
+			final String title,
+			final CharSequence text,
+			final boolean firstInList) {
 
 		final int paddingPixels = General.dpToPixels(context, 12);
 
@@ -105,7 +133,7 @@ public abstract class PropertiesDialog extends AppCompatDialogFragment {
 		}
 
 		final TextView titleView = new TextView(context);
-		titleView.setText(title.toUpperCase());
+		titleView.setText(title.toUpperCase(Locale.getDefault()));
 		titleView.setTextColor(rrListHeaderTextCol);
 		titleView.setTextSize(12.0f);
 		titleView.setPadding(paddingPixels, paddingPixels, paddingPixels, 0);
@@ -118,6 +146,12 @@ public abstract class PropertiesDialog extends AppCompatDialogFragment {
 		textView.setPadding(paddingPixels, 0, paddingPixels, paddingPixels);
 		textView.setTextIsSelectable(true);
 		prop.addView(textView);
+
+		prop.setContentDescription(title + "\n" + text);
+
+		if(Build.VERSION.SDK_INT >= 16) {
+			textView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+		}
 
 		return prop;
 	}

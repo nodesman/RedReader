@@ -24,6 +24,7 @@ public class RedditAccount {
 
 	public final String username;
 	public final RedditOAuth.RefreshToken refreshToken;
+	public final boolean usesNewClientId;
 
 	private RedditOAuth.AccessToken accessToken;
 
@@ -32,12 +33,16 @@ public class RedditAccount {
 	public RedditAccount(
 			final String username,
 			final RedditOAuth.RefreshToken refreshToken,
+			final boolean usesNewClientId,
 			final long priority) {
 
-		if(username == null) throw new RuntimeException("Null user in RedditAccount");
+		if(username == null) {
+			throw new RuntimeException("Null user in RedditAccount");
+		}
 
 		this.username = username.trim();
 		this.refreshToken = refreshToken;
+		this.usesNewClientId = usesNewClientId;
 		this.priority = priority;
 	}
 
@@ -53,13 +58,14 @@ public class RedditAccount {
 		return accessToken;
 	}
 
-	public synchronized void setAccessToken(RedditOAuth.AccessToken token) {
+	public synchronized void setAccessToken(final RedditOAuth.AccessToken token) {
 		accessToken = token;
 	}
 
 	@Override
 	public boolean equals(final Object o) {
-		return o instanceof RedditAccount && username.equalsIgnoreCase(((RedditAccount) o).username);
+		return o instanceof RedditAccount
+				&& username.equalsIgnoreCase(((RedditAccount)o).username);
 	}
 
 	@Override

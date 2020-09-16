@@ -17,7 +17,7 @@
 
 package org.quantumbadger.redreader.io;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -25,7 +25,7 @@ import java.io.OutputStream;
 
 public class ExtendedDataOutputStream extends DataOutputStream {
 
-	public ExtendedDataOutputStream(OutputStream out) {
+	public ExtendedDataOutputStream(final OutputStream out) {
 		super(out);
 	}
 

@@ -17,8 +17,8 @@
 
 package org.quantumbadger.redreader.reddit;
 
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import org.quantumbadger.redreader.activities.BugReportActivity;
 import org.quantumbadger.redreader.cache.CacheRequest;
 import org.quantumbadger.redreader.common.RRError;
@@ -43,22 +43,31 @@ public abstract class APIResponseHandler {
 		ALREADY_SUBMITTED
 	}
 
-	private APIResponseHandler(AppCompatActivity context) {
+	private APIResponseHandler(final AppCompatActivity context) {
 		this.context = context;
 	}
 
 	protected abstract void onCallbackException(Throwable t);
 
-	protected abstract void onFailure(@CacheRequest.RequestFailureType int type, Throwable t, Integer status, String readableMessage);
+	protected abstract void onFailure(
+			@CacheRequest.RequestFailureType int type,
+			Throwable t,
+			Integer status,
+			String readableMessage);
+
 	protected abstract void onFailure(APIFailureType type);
 
-	public final void notifyFailure(final @CacheRequest.RequestFailureType int type, final Throwable t, final Integer status, final String readableMessage) {
+	public final void notifyFailure(
+			final @CacheRequest.RequestFailureType int type,
+			final Throwable t,
+			final Integer status,
+			final String readableMessage) {
 		try {
 			onFailure(type, t, status, readableMessage);
-		} catch(Throwable t1) {
+		} catch(final Throwable t1) {
 			try {
 				onCallbackException(t1);
-			} catch(Throwable t2) {
+			} catch(final Throwable t2) {
 				BugReportActivity.addGlobalError(new RRError(null, null, t1));
 				BugReportActivity.handleGlobalError(context, t2);
 			}
@@ -68,10 +77,10 @@ public abstract class APIResponseHandler {
 	public final void notifyFailure(final APIFailureType type) {
 		try {
 			onFailure(type);
-		} catch(Throwable t1) {
+		} catch(final Throwable t1) {
 			try {
 				onCallbackException(t1);
-			} catch(Throwable t2) {
+			} catch(final Throwable t2) {
 				BugReportActivity.addGlobalError(new RRError(null, null, t1));
 				BugReportActivity.handleGlobalError(context, t2);
 			}
@@ -80,17 +89,17 @@ public abstract class APIResponseHandler {
 
 	public static abstract class ActionResponseHandler extends APIResponseHandler {
 
-		protected ActionResponseHandler(AppCompatActivity context) {
+		protected ActionResponseHandler(final AppCompatActivity context) {
 			super(context);
 		}
 
 		public final void notifySuccess(@Nullable final String redirectUrl) {
 			try {
 				onSuccess(redirectUrl);
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}
@@ -102,17 +111,17 @@ public abstract class APIResponseHandler {
 
 	public static abstract class NewCaptchaResponseHandler extends APIResponseHandler {
 
-		protected NewCaptchaResponseHandler(AppCompatActivity context) {
+		protected NewCaptchaResponseHandler(final AppCompatActivity context) {
 			super(context);
 		}
 
 		public final void notifySuccess(final String captchaId) {
 			try {
 				onSuccess(captchaId);
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}
@@ -124,17 +133,19 @@ public abstract class APIResponseHandler {
 
 	public static abstract class SubredditResponseHandler extends APIResponseHandler {
 
-		protected SubredditResponseHandler(AppCompatActivity context) {
+		protected SubredditResponseHandler(final AppCompatActivity context) {
 			super(context);
 		}
 
-		public final void notifySuccess(final List<RedditSubreddit> result, final long timestamp) {
+		public final void notifySuccess(
+				final List<RedditSubreddit> result,
+				final long timestamp) {
 			try {
 				onSuccess(result, timestamp);
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}
@@ -144,10 +155,10 @@ public abstract class APIResponseHandler {
 		public final void notifyDownloadNecessary() {
 			try {
 				onDownloadNecessary();
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}
@@ -157,10 +168,10 @@ public abstract class APIResponseHandler {
 		public final void notifyDownloadStarted() {
 			try {
 				onDownloadStarted();
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}
@@ -168,23 +179,25 @@ public abstract class APIResponseHandler {
 		}
 
 		protected abstract void onDownloadNecessary();
+
 		protected abstract void onDownloadStarted();
+
 		protected abstract void onSuccess(List<RedditSubreddit> result, long timestamp);
 	}
 
 	public static abstract class UserResponseHandler extends APIResponseHandler {
 
-		protected UserResponseHandler(AppCompatActivity context) {
+		protected UserResponseHandler(final AppCompatActivity context) {
 			super(context);
 		}
 
 		public final void notifySuccess(final RedditUser result, final long timestamp) {
 			try {
 				onSuccess(result, timestamp);
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}
@@ -194,10 +207,10 @@ public abstract class APIResponseHandler {
 		public final void notifyDownloadStarted() {
 			try {
 				onDownloadStarted();
-			} catch(Throwable t1) {
+			} catch(final Throwable t1) {
 				try {
 					onCallbackException(t1);
-				} catch(Throwable t2) {
+				} catch(final Throwable t2) {
 					BugReportActivity.addGlobalError(new RRError(null, null, t1));
 					BugReportActivity.handleGlobalError(context, t2);
 				}

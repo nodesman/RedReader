@@ -18,7 +18,7 @@
 package org.quantumbadger.redreader.fragments;
 
 import android.content.Context;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.widget.LinearLayout;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.common.ChangelogManager;
@@ -30,12 +30,12 @@ public final class ChangelogDialog extends PropertiesDialog {
 	}
 
 	@Override
-	protected String getTitle(Context context) {
+	protected String getTitle(final Context context) {
 		return context.getString(R.string.title_changelog);
 	}
 
 	@Override
-	protected void prepare(AppCompatActivity context, LinearLayout items) {
+	protected void prepare(final AppCompatActivity context, final LinearLayout items) {
 		ChangelogManager.generateViews(context, items, false);
 	}
 }

@@ -17,8 +17,13 @@
 
 package org.quantumbadger.redreader.common;
 
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.AccessibilityDelegateCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
+import android.os.Build;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import org.quantumbadger.redreader.R;
@@ -29,17 +34,19 @@ import java.io.InputStreamReader;
 
 public class ChangelogManager {
 
-	public static void generateViews(AppCompatActivity context, LinearLayout items, boolean showAll) {
+	public static void generateViews(
+			final AppCompatActivity context,
+			final LinearLayout items,
+			final boolean showAll) {
 
 		final RRThemeAttributes attr = new RRThemeAttributes(context);
 
 		final int outerPaddingPx = General.dpToPixels(context, 12);
 		items.setPadding(outerPaddingPx, 0, outerPaddingPx, outerPaddingPx);
 
-		try {
-			final BufferedReader br = new BufferedReader(
+		try(BufferedReader br = new BufferedReader(
 				new InputStreamReader(context.getAssets().open("changelog.txt")),
-				128 * 1024);
+				128 * 1024)) {
 
 			String curVersionName = null;
 
@@ -64,10 +71,27 @@ public class ChangelogManager {
 					final String[] lineSplit = line.split("/");
 					curVersionName = lineSplit[1];
 
-					final TextView header = (TextView) LayoutInflater.from(context)
-						.inflate(R.layout.list_sectionheader, items, false);
+					final TextView header = (TextView)LayoutInflater.from(context)
+							.inflate(
+									R.layout.list_sectionheader,
+									items,
+									false);
 					header.setText(curVersionName);
 					header.setTextColor(attr.colorAccent);
+
+					//From https://stackoverflow.com/a/54082384
+					ViewCompat.setAccessibilityDelegate(
+							header,
+							new AccessibilityDelegateCompat() {
+								@Override
+								public void onInitializeAccessibilityNodeInfo(
+										final View host,
+										final AccessibilityNodeInfoCompat info) {
+									super.onInitializeAccessibilityNodeInfo(host, info);
+									info.setHeading(true);
+								}
+							});
+
 					items.addView(header);
 
 				} else {
@@ -75,10 +99,14 @@ public class ChangelogManager {
 					final LinearLayout bulletItem = new LinearLayout(context);
 					final int paddingPx = General.dpToPixels(context, 6);
 					bulletItem.setPadding(paddingPx, paddingPx, paddingPx, 0);
+					bulletItem.setFocusable(true);
 
 					final TextView bullet = new TextView(context);
 					bullet.setText("•  ");
 					bulletItem.addView(bullet);
+					if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+						bullet.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+					}
 
 					final TextView text = new TextView(context);
 					text.setText(line);
@@ -89,7 +117,7 @@ public class ChangelogManager {
 
 			}
 
-		} catch(IOException e) {
+		} catch(final IOException e) {
 			throw new RuntimeException(e);
 		}
 	}

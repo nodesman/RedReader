@@ -19,9 +19,9 @@ package org.quantumbadger.redreader.image;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import org.apache.commons.lang3.StringEscapeUtils;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import org.apache.commons.text.StringEscapeUtils;
 import org.quantumbadger.redreader.common.ParcelHelper;
 import org.quantumbadger.redreader.jsonwrap.JsonBufferedObject;
 
@@ -54,7 +54,8 @@ public class ImageInfo implements Parcelable {
 	public enum HasAudio {
 		HAS_AUDIO, MAYBE_AUDIO, NO_AUDIO;
 
-		public static @NonNull HasAudio fromBoolean(@Nullable final Boolean value) {
+		public static @NonNull
+		HasAudio fromBoolean(@Nullable final Boolean value) {
 
 			if(value == null) {
 				return MAYBE_AUDIO;
@@ -171,13 +172,21 @@ public class ImageInfo implements Parcelable {
 		JsonBufferedObject fileObj = null;
 		final JsonBufferedObject files = object.getObject("files");
 
-		final String[] preferredTypes = {"mp4", "webm", "mp4-high", "webm-high", "mp4-mobile", "webm-mobile"};
+		final String[] preferredTypes = {
+				"mp4",
+				"webm",
+				"mp4-high",
+				"webm-high",
+				"mp4-mobile",
+				"webm-mobile"};
 		String selectedType = null;
 
 		for(final String type : preferredTypes) {
 			fileObj = files.getObject(type);
 			selectedType = type;
-			if(fileObj != null) break;
+			if(fileObj != null) {
+				break;
+			}
 		}
 
 		if(fileObj == null) {
@@ -236,7 +245,9 @@ public class ImageInfo implements Parcelable {
 
 		if(links != null) {
 			urlOriginal = links.getString("original");
-			if(urlOriginal != null && isAnimated) urlOriginal = urlOriginal.replace(".gif", ".mp4");
+			if(urlOriginal != null && isAnimated) {
+				urlOriginal = urlOriginal.replace(".gif", ".mp4");
+			}
 
 			urlBigSquare = links.getString("big_square");
 		}
@@ -336,7 +347,7 @@ public class ImageInfo implements Parcelable {
 		String type = null;
 		Long width = null;
 		Long height = null;
-		Long size = (long) 0;
+		final Long size = (long)0;
 
 		if(object != null) {
 			urlOriginal = object.getString("url");
@@ -393,7 +404,8 @@ public class ImageInfo implements Parcelable {
 		ParcelHelper.writeNonNullEnum(parcel, hasAudio);
 	}
 
-	public static final Parcelable.Creator<ImageInfo> CREATOR = new Parcelable.Creator<ImageInfo>() {
+	public static final Parcelable.Creator<ImageInfo> CREATOR
+			= new Parcelable.Creator<ImageInfo>() {
 		public ImageInfo createFromParcel(final Parcel in) {
 			return new ImageInfo(in);
 		}

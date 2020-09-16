@@ -18,7 +18,12 @@
 package org.quantumbadger.redreader.views.imageview;
 
 import org.quantumbadger.redreader.common.MutableFloatPoint2D;
-import org.quantumbadger.redreader.views.glview.displaylist.*;
+import org.quantumbadger.redreader.views.glview.displaylist.RRGLRenderable;
+import org.quantumbadger.redreader.views.glview.displaylist.RRGLRenderableBlend;
+import org.quantumbadger.redreader.views.glview.displaylist.RRGLRenderableColouredQuad;
+import org.quantumbadger.redreader.views.glview.displaylist.RRGLRenderableGroup;
+import org.quantumbadger.redreader.views.glview.displaylist.RRGLRenderableScale;
+import org.quantumbadger.redreader.views.glview.displaylist.RRGLRenderableTranslation;
 import org.quantumbadger.redreader.views.glview.program.RRGLContext;
 import org.quantumbadger.redreader.views.glview.program.RRGLMatrixStack;
 
@@ -61,7 +66,11 @@ public class ImageViewScrollbars extends RRGLRenderable {
 	private static final float ALPHA_STEP = 0.05f;
 	private boolean mIsVisible = true;
 
-	public ImageViewScrollbars(RRGLContext glContext, CoordinateHelper coordinateHelper, int imageResX, int imageResY) {
+	public ImageViewScrollbars(
+			final RRGLContext glContext,
+			final CoordinateHelper coordinateHelper,
+			final int imageResX,
+			final int imageResY) {
 
 		mCoordinateHelper = coordinateHelper;
 		mImageResX = imageResX;
@@ -80,9 +89,12 @@ public class ImageViewScrollbars extends RRGLRenderable {
 			mVScroll = new RRGLRenderableGroup();
 			group.add(mVScroll);
 
-			final RRGLRenderableColouredQuad vScrollMarker = new RRGLRenderableColouredQuad(glContext);
-			final RRGLRenderableColouredQuad vScrollBar = new RRGLRenderableColouredQuad(glContext);
-			final RRGLRenderableColouredQuad vScrollBorder = new RRGLRenderableColouredQuad(glContext);
+			final RRGLRenderableColouredQuad vScrollMarker =
+					new RRGLRenderableColouredQuad(glContext);
+			final RRGLRenderableColouredQuad vScrollBar =
+					new RRGLRenderableColouredQuad(glContext);
+			final RRGLRenderableColouredQuad vScrollBorder =
+					new RRGLRenderableColouredQuad(glContext);
 
 			vScrollMarker.setColour(1, 1, 1, 0.8f);
 			vScrollBar.setColour(0, 0, 0, 0.5f);
@@ -92,9 +104,11 @@ public class ImageViewScrollbars extends RRGLRenderable {
 			mVScrollBarScale = new RRGLRenderableScale(vScrollBar);
 			mVScrollBorderScale = new RRGLRenderableScale(vScrollBorder);
 
-			mVScrollMarkerTranslation = new RRGLRenderableTranslation(mVScrollMarkerScale);
+			mVScrollMarkerTranslation =
+					new RRGLRenderableTranslation(mVScrollMarkerScale);
 			mVScrollBarTranslation = new RRGLRenderableTranslation(mVScrollBarScale);
-			mVScrollBorderTranslation = new RRGLRenderableTranslation(mVScrollBorderScale);
+			mVScrollBorderTranslation =
+					new RRGLRenderableTranslation(mVScrollBorderScale);
 
 			mVScroll.add(mVScrollBorderTranslation);
 			mVScroll.add(mVScrollBarTranslation);
@@ -106,9 +120,12 @@ public class ImageViewScrollbars extends RRGLRenderable {
 			mHScroll = new RRGLRenderableGroup();
 			group.add(mHScroll);
 
-			final RRGLRenderableColouredQuad hScrollMarker = new RRGLRenderableColouredQuad(glContext);
-			final RRGLRenderableColouredQuad hScrollBar = new RRGLRenderableColouredQuad(glContext);
-			final RRGLRenderableColouredQuad hScrollBorder = new RRGLRenderableColouredQuad(glContext);
+			final RRGLRenderableColouredQuad hScrollMarker =
+					new RRGLRenderableColouredQuad(glContext);
+			final RRGLRenderableColouredQuad hScrollBar =
+					new RRGLRenderableColouredQuad(glContext);
+			final RRGLRenderableColouredQuad hScrollBorder =
+					new RRGLRenderableColouredQuad(glContext);
 
 			hScrollMarker.setColour(1, 1, 1, 0.8f);
 			hScrollBar.setColour(0, 0, 0, 0.5f);
@@ -118,9 +135,11 @@ public class ImageViewScrollbars extends RRGLRenderable {
 			mHScrollBarScale = new RRGLRenderableScale(hScrollBar);
 			mHScrollBorderScale = new RRGLRenderableScale(hScrollBorder);
 
-			mHScrollMarkerTranslation = new RRGLRenderableTranslation(mHScrollMarkerScale);
+			mHScrollMarkerTranslation =
+					new RRGLRenderableTranslation(mHScrollMarkerScale);
 			mHScrollBarTranslation = new RRGLRenderableTranslation(mHScrollBarScale);
-			mHScrollBorderTranslation = new RRGLRenderableTranslation(mHScrollBorderScale);
+			mHScrollBorderTranslation =
+					new RRGLRenderableTranslation(mHScrollBorderScale);
 
 			mHScroll.add(mHScrollBorderTranslation);
 			mHScroll.add(mHScrollBarTranslation);
@@ -147,7 +166,7 @@ public class ImageViewScrollbars extends RRGLRenderable {
 
 		// Vertical scroll bar
 
-		if(yStart < EPSILON && yEnd > 1-EPSILON) {
+		if(yStart < EPSILON && yEnd > 1 - EPSILON) {
 			mVScroll.hide();
 
 		} else {
@@ -159,8 +178,12 @@ public class ImageViewScrollbars extends RRGLRenderable {
 			final float vScrollTop = yStart * vScrollTotalHeight + mDimMarginEnds;
 			final float vScrollLeft = mResX - mDimBarWidth - mDimMarginSides;
 
-			mVScrollBorderTranslation.setPosition(vScrollLeft - mDimBorderWidth, mDimMarginEnds - mDimBorderWidth);
-			mVScrollBorderScale.setScale(mDimBarWidth + 2 * mDimBorderWidth, vScrollTotalHeight + 2 * mDimBorderWidth);
+			mVScrollBorderTranslation.setPosition(
+					vScrollLeft - mDimBorderWidth,
+					mDimMarginEnds - mDimBorderWidth);
+			mVScrollBorderScale.setScale(
+					mDimBarWidth + 2 * mDimBorderWidth,
+					vScrollTotalHeight + 2 * mDimBorderWidth);
 
 			mVScrollBarTranslation.setPosition(vScrollLeft, mDimMarginEnds);
 			mVScrollBarScale.setScale(mDimBarWidth, vScrollTotalHeight);
@@ -171,7 +194,7 @@ public class ImageViewScrollbars extends RRGLRenderable {
 
 		// Horizontal scroll bar
 
-		if(xStart < EPSILON && xEnd > 1-EPSILON) {
+		if(xStart < EPSILON && xEnd > 1 - EPSILON) {
 			mHScroll.hide();
 
 		} else {
@@ -183,8 +206,12 @@ public class ImageViewScrollbars extends RRGLRenderable {
 			final float hScrollLeft = xStart * hScrollTotalWidth + mDimMarginEnds;
 			final float hScrollTop = mResY - mDimBarWidth - mDimMarginSides;
 
-			mHScrollBorderTranslation.setPosition(mDimMarginEnds - mDimBorderWidth, hScrollTop - mDimBorderWidth);
-			mHScrollBorderScale.setScale(hScrollTotalWidth + 2 * mDimBorderWidth, mDimBarWidth + mDimBorderWidth * 2);
+			mHScrollBorderTranslation.setPosition(
+					mDimMarginEnds - mDimBorderWidth,
+					hScrollTop - mDimBorderWidth);
+			mHScrollBorderScale.setScale(
+					hScrollTotalWidth + 2 * mDimBorderWidth,
+					mDimBarWidth + mDimBorderWidth * 2);
 
 			mHScrollBarTranslation.setPosition(mDimMarginEnds, hScrollTop);
 			mHScrollBarScale.setScale(hScrollTotalWidth, mDimBarWidth);
@@ -194,7 +221,7 @@ public class ImageViewScrollbars extends RRGLRenderable {
 		}
 	}
 
-	public synchronized void setResolution(int x, int y) {
+	public synchronized void setResolution(final int x, final int y) {
 		mResX = x;
 		mResY = y;
 	}
@@ -223,7 +250,7 @@ public class ImageViewScrollbars extends RRGLRenderable {
 	}
 
 	@Override
-	protected synchronized void renderInternal(RRGLMatrixStack stack, long time) {
+	protected synchronized void renderInternal(final RRGLMatrixStack stack, final long time) {
 
 		if(mIsVisible && time > mShowUntil) {
 			mCurrentAlpha -= ALPHA_STEP;

@@ -17,7 +17,7 @@
 
 package org.quantumbadger.redreader.viewholders;
 
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -35,7 +35,7 @@ public class VH3TextIcon extends RecyclerView.ViewHolder {
 
 	public long bindingId = 0;
 
-	public VH3TextIcon(View itemView) {
+	public VH3TextIcon(final View itemView) {
 		super(itemView);
 
 		text = itemView.findViewById(R.id.recycler_item_text);

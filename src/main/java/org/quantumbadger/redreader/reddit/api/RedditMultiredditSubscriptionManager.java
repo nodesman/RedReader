@@ -18,8 +18,8 @@
 package org.quantumbadger.redreader.reddit.api;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import org.quantumbadger.redreader.account.RedditAccount;
 import org.quantumbadger.redreader.common.TimestampBound;
 import org.quantumbadger.redreader.common.collections.WeakReferenceListManager;
@@ -32,7 +32,8 @@ import java.util.HashSet;
 
 public class RedditMultiredditSubscriptionManager {
 
-	private final MultiredditListChangeNotifier notifier = new MultiredditListChangeNotifier();
+	private final MultiredditListChangeNotifier notifier
+			= new MultiredditListChangeNotifier();
 	private final WeakReferenceListManager<MultiredditListChangeListener> listeners
 			= new WeakReferenceListManager<>();
 
@@ -51,10 +52,14 @@ public class RedditMultiredditSubscriptionManager {
 			@NonNull final RedditAccount account) {
 
 		if(db == null) {
-			db = new RawObjectDB<>(context, "rr_multireddit_subscriptions.db", WritableHashSet.class);
+			db = new RawObjectDB<>(
+					context,
+					"rr_multireddit_subscriptions.db",
+					WritableHashSet.class);
 		}
 
-		if(singleton == null || !account.equals(RedditMultiredditSubscriptionManager.singletonAccount)) {
+		if(singleton == null
+				|| !account.equals(RedditMultiredditSubscriptionManager.singletonAccount)) {
 			singleton = new RedditMultiredditSubscriptionManager(account, context);
 			RedditMultiredditSubscriptionManager.singletonAccount = account;
 		}
@@ -80,9 +85,14 @@ public class RedditMultiredditSubscriptionManager {
 		return mMultireddits != null;
 	}
 
-	private synchronized void onNewSubscriptionListReceived(HashSet<String> newSubscriptions, long timestamp) {
+	private synchronized void onNewSubscriptionListReceived(
+			final HashSet<String> newSubscriptions,
+			final long timestamp) {
 
-		mMultireddits = new WritableHashSet(newSubscriptions, timestamp, mUser.getCanonicalUsername());
+		mMultireddits = new WritableHashSet(
+				newSubscriptions,
+				timestamp,
+				mUser.getCanonicalUsername());
 
 		listeners.map(notifier);
 
@@ -95,10 +105,13 @@ public class RedditMultiredditSubscriptionManager {
 	}
 
 	public void triggerUpdate(
-			@Nullable final RequestResponseHandler<HashSet<String>, SubredditRequestFailure> handler,
+			@Nullable final RequestResponseHandler<
+					HashSet<String>,
+					SubredditRequestFailure> handler,
 			@NonNull final TimestampBound timestampBound) {
 
-		if(mMultireddits != null && timestampBound.verifyTimestamp(mMultireddits.getTimestamp())) {
+		if(mMultireddits != null
+				&& timestampBound.verifyTimestamp(mMultireddits.getTimestamp())) {
 			return;
 		}
 
@@ -109,15 +122,21 @@ public class RedditMultiredditSubscriptionManager {
 
 					// TODO handle failed requests properly -- retry? then notify listeners
 					@Override
-					public void onRequestFailed(SubredditRequestFailure failureReason) {
-						if(handler != null) handler.onRequestFailed(failureReason);
+					public void onRequestFailed(final SubredditRequestFailure failureReason) {
+						if(handler != null) {
+							handler.onRequestFailed(failureReason);
+						}
 					}
 
 					@Override
-					public void onRequestSuccess(WritableHashSet result, long timeCached) {
+					public void onRequestSuccess(
+							final WritableHashSet result,
+							final long timeCached) {
 						final HashSet<String> newSubscriptions = result.toHashset();
 						onNewSubscriptionListReceived(newSubscriptions, timeCached);
-						if(handler != null) handler.onRequestSuccess(newSubscriptions, timeCached);
+						if(handler != null) {
+							handler.onRequestSuccess(newSubscriptions, timeCached);
+						}
 					}
 				}
 		);
@@ -128,14 +147,16 @@ public class RedditMultiredditSubscriptionManager {
 	}
 
 	public interface MultiredditListChangeListener {
-		void onMultiredditListUpdated(RedditMultiredditSubscriptionManager multiredditSubscriptionManager);
+		void onMultiredditListUpdated(
+				RedditMultiredditSubscriptionManager multiredditSubscriptionManager);
 	}
 
 	private class MultiredditListChangeNotifier
 			implements WeakReferenceListManager.Operator<MultiredditListChangeListener> {
 
-		public void operate(MultiredditListChangeListener listener) {
-			listener.onMultiredditListUpdated(RedditMultiredditSubscriptionManager.this);
+		public void operate(final MultiredditListChangeListener listener) {
+			listener.onMultiredditListUpdated(
+					RedditMultiredditSubscriptionManager.this);
 		}
 	}
 }

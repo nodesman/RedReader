@@ -18,6 +18,8 @@
 package org.quantumbadger.redreader.http;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import org.quantumbadger.redreader.cache.CacheRequest;
 import org.quantumbadger.redreader.http.okhttp.OKHTTPBackend;
 
@@ -37,20 +39,34 @@ public abstract class HTTPBackend {
 
 	public static class RequestDetails {
 
-		private final URI mUrl;
-		private final List<PostField> mPostFields;
+		@NonNull private final URI mUrl;
+		@Nullable private final List<PostField> mPostFields;
 
-		public RequestDetails(final URI url, final List<PostField> postFields) {
+		public RequestDetails(
+				@NonNull final URI url,
+				@Nullable final List<PostField> postFields) {
 			mUrl = url;
 			mPostFields = postFields;
 		}
 
+		@NonNull
 		public URI getUrl() {
 			return mUrl;
 		}
 
+		@Nullable
 		public List<PostField> getPostFields() {
 			return mPostFields;
+		}
+
+		@NonNull
+		@Override
+		public String toString() {
+			return "RequestDetails("
+					+ mUrl.toString()
+					+ ", "
+					+ (mPostFields != null ? mPostFields.toString() : null)
+					+ ")";
 		}
 	}
 
@@ -66,8 +82,10 @@ public abstract class HTTPBackend {
 
 		public String encode() {
 			try {
-				return URLEncoder.encode(name, "UTF-8") + "=" + URLEncoder.encode(value, "UTF-8");
-			} catch (UnsupportedEncodingException e) {
+				return URLEncoder.encode(name, "UTF-8") + "=" + URLEncoder.encode(
+						value,
+						"UTF-8");
+			} catch(final UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -76,9 +94,9 @@ public abstract class HTTPBackend {
 
 			final StringBuilder result = new StringBuilder();
 
-			for (final PostField field : fields) {
+			for(final PostField field : fields) {
 
-				if (result.length() > 0) {
+				if(result.length() > 0) {
 					result.append('&');
 				}
 
@@ -86,6 +104,12 @@ public abstract class HTTPBackend {
 			}
 
 			return result.toString();
+		}
+
+		@NonNull
+		@Override
+		public String toString() {
+			return "PostField(name=" + name + ")";
 		}
 	}
 
@@ -98,7 +122,10 @@ public abstract class HTTPBackend {
 	}
 
 	public interface Listener {
-		void onError(@CacheRequest.RequestFailureType int failureType, Throwable exception, Integer httpStatus);
+		void onError(
+				@CacheRequest.RequestFailureType int failureType,
+				Throwable exception,
+				Integer httpStatus);
 
 		void onSuccess(String mimetype, Long bodyBytes, InputStream body);
 	}

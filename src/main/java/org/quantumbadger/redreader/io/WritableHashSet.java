@@ -17,13 +17,15 @@
 
 package org.quantumbadger.redreader.io;
 
+import androidx.annotation.NonNull;
 import org.quantumbadger.redreader.common.UnexpectedInternalStateException;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 
-public class WritableHashSet implements WritableObject<String> {
+public class WritableHashSet implements WritableObject<String>, Iterable<String> {
 
 	@WritableObjectVersion
 	public static int DB_VERSION = 1;
@@ -37,27 +39,28 @@ public class WritableHashSet implements WritableObject<String> {
 	@WritableObjectTimestamp
 	private final long timestamp;
 
-	public WritableHashSet(HashSet<String> data, long timestamp, String key) {
+	public WritableHashSet(final HashSet<String> data, final long timestamp, final String key) {
 		this.hashSet = data;
 		this.timestamp = timestamp;
 		this.key = key;
 		serialised = listToEscapedString(hashSet);
 	}
 
-	private WritableHashSet(String serializedData, long timestamp, String key) {
+	private WritableHashSet(final String serializedData, final long timestamp, final String key) {
 		this.timestamp = timestamp;
 		this.key = key;
 		serialised = serializedData;
 	}
 
-	public WritableHashSet(CreationData creationData) {
+	public WritableHashSet(final CreationData creationData) {
 		this.timestamp = creationData.timestamp;
 		this.key = creationData.key;
 	}
 
 	@Override
 	public String toString() {
-		throw new UnexpectedInternalStateException("Using toString() is the wrong way to serialise a WritableHashSet");
+		throw new UnexpectedInternalStateException(
+				"Using toString() is the wrong way to serialise a WritableHashSet");
 	}
 
 	public String serializeWithMetadata() {
@@ -68,13 +71,15 @@ public class WritableHashSet implements WritableObject<String> {
 		return listToEscapedString(result);
 	}
 
-	public static WritableHashSet unserializeWithMetadata(String raw) {
+	public static WritableHashSet unserializeWithMetadata(final String raw) {
 		final ArrayList<String> data = escapedStringToList(raw);
 		return new WritableHashSet(data.get(0), Long.valueOf(data.get(1)), data.get(2));
 	}
 
 	public synchronized HashSet<String> toHashset() {
-		if(hashSet != null) return hashSet;
+		if(hashSet != null) {
+			return hashSet;
+		}
 		return (hashSet = new HashSet<>(escapedStringToList(serialised)));
 	}
 
@@ -88,7 +93,9 @@ public class WritableHashSet implements WritableObject<String> {
 
 	public static String listToEscapedString(final Collection<String> list) {
 
-		if(list.size() == 0) return "";
+		if(list.size() == 0) {
+			return "";
+		}
 
 		final StringBuilder sb = new StringBuilder();
 
@@ -119,7 +126,9 @@ public class WritableHashSet implements WritableObject<String> {
 	public static ArrayList<String> escapedStringToList(String str) {
 
 		// Workaround to improve parsing of lists saved by older versions of the app
-		if(str.length() > 0 && !str.endsWith(";")) str += ";";
+		if(str.length() > 0 && !str.endsWith(";")) {
+			str += ";";
+		}
 
 		final ArrayList<String> result = new ArrayList<>();
 
@@ -137,7 +146,9 @@ public class WritableHashSet implements WritableObject<String> {
 					sb.setLength(0);
 
 				} else if(c == '\\') {
-					if(isEscaped) sb.append('\\');
+					if(isEscaped) {
+						sb.append('\\');
+					}
 
 				} else {
 					sb.append(c);
@@ -148,5 +159,11 @@ public class WritableHashSet implements WritableObject<String> {
 		}
 
 		return result;
+	}
+
+	@NonNull
+	@Override
+	public Iterator<String> iterator() {
+		return toHashset().iterator();
 	}
 }

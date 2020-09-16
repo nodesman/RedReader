@@ -1,4 +1,62 @@
-88/1.9.11
+94/1.14
+Fixed crash when opening video controls
+Fixed ANR caused by legacy GIF decoding
+Fixed crash when swiping to a deleted image in an album
+
+93/1.13
+Ability to customise action bar buttons (thanks to Cameron Merkel)
+Preferences to hide comments button, and add post context menu item to view comments (thanks to Cameron Merkel)
+Ability to zoom videos to fit the screen (thanks to Cameron Merkel)
+Logins now use external browser by default on old devices
+Restored old behaviour when selecting text in properties dialog
+Fixed redirect loop when visiting deleted Reddit galleries
+Added ability to send reports from the error details dialog
+Improved responsiveness of video seek bar (thanks to Cameron Merkel)
+Enable swipe-to-refresh in the main menu (thanks to Cameron Merkel)
+Add default sort preference for multireddits and user posts/comments (thanks to Cameron Merkel)
+Translation updates (thanks to Allan Nordhøy, Bopol, Emerson Castaneda, Eric, Fırat Altay, Gerry, JoC, Matthias Paulmier, Meiru, Verdulo, zeritti, and zmni)
+
+92/1.12
+Reddit image gallery support
+Internal image viewer now supports Giphy
+Fixed malformed HTML error for unclosed tags and empty comments
+Subscribe/etc menu items now shown for /r/random (thanks to Cameron Merkel)
+Improvements to copying to the clipboard (thanks to Cameron Merkel)
+Up button in settings fixed (now goes back only one level)
+Accessibility improvements (thanks to Cameron Merkel)
+Translation updates (thanks to Allan Nordhøy, Artem, B0pol, Francisco Javier Meléndez Ruiz, Frans de Jonge, Gontzal Manuel Pujana Onaindia, Jeannette L, Jesper, JoC, Karol Kosek, marzzzello, mondstern, Piero Sangino, Riku Viitanen, Verdulo, Vladislav Glinsky, Xiang Xu, zeritti, and zmni!)
+
+91/1.11
+Fix for v.redd.it videos
+Support for table rendering
+Support for new spoiler syntax, and formatting/links inside spoilers
+Various improvements to markdown rendering
+Added preference to disable new header toolbars
+Keep screen on while playing videos
+Dependency updates (thanks to TacoTheDank)
+Crash fix for users with some non-English locales
+Reorganised menu preferences (thanks to Cameron Merkel)
+
+90/1.10
+Added toolbar when viewing subreddits and comments
+Avoid showing old comment listings (by refreshing if the cached copy is too old)
+Preference to hide items in post subtitle (thanks to Cameron Merkel)
+Fine-grained control over font scaling (thanks to Cameron Merkel)
+Added custom share dialog with prioritisation, off by default (thanks to LizardWithHat)
+Preserve fields when returning to post submission activity (thanks to fguibourt)
+Fixed issue with HTTP cleartext websites
+Display error when NSFW subreddits are blocked (thanks for Cameron Merkel)
+Various image viewer performance improvements
+Fixed subreddit sidebar on Android 4.x
+Added support for more image hosts (thanks to Tim Coombs)
+Assorted bug fixes (thanks for Cameron Merkel)
+Added Hindi translation (thanks to Chandra Mohan Jha)
+Added Greek translation (thanks to George K)
+Added Japanese translation (thanks to Karthik Nallasivan)
+Added Traditional Chinese translation (thanks to gensitu)
+Assorted translation updates (thanks to Allan Nordhøy, Andrea Troiano, Andrés Hernández, B0pol, Dennis Öberg, Emil Tang Kristensen, Gontzal Manuel Pujana Onaindia, Ignas, Javi Sautua, John Curcio, Karol, LizardWithHat, Louies, Luke, mivek, Mohammed, Nam Portuhkee, Osoitz, Péter Gyetvai, Petter Reinholdtsen, Sohalt, ssantos, Taiite, Venkat Sub, Verdulo, Vladislav Glinsky, wb9688, Wouter Wijsman, zeritti, and zmni!)
+
+89/1.9.11
 Adaptive icon on supported devices (thanks to Riley Inman)
 Added post context menu item to copy self-text (thanks to MichalFerencsik)
 Fixed notifications on Android 8.0+

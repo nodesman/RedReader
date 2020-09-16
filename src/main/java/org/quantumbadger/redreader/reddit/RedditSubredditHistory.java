@@ -1,48 +1,71 @@
+/*******************************************************************************
+ * This file is part of RedReader.
+ *
+ * RedReader is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * RedReader is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with RedReader.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+
 package org.quantumbadger.redreader.reddit;
 
 import org.quantumbadger.redreader.account.RedditAccount;
 import org.quantumbadger.redreader.common.Constants;
-import org.quantumbadger.redreader.common.General;
-import org.quantumbadger.redreader.reddit.things.RedditSubreddit;
+import org.quantumbadger.redreader.reddit.things.SubredditCanonicalId;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
 
 // Keeps an in-memory list of all known subreddits per account
-public class RedditSubredditHistory
-{
-	private static final HashMap<RedditAccount, HashSet<String>> SUBREDDITS = new HashMap<>();
+public class RedditSubredditHistory {
 
-	public static synchronized void addSubreddit(final RedditAccount account, final String name) throws RedditSubreddit.InvalidSubredditNameException
-	{
-		putDefaultSubreddits(account);
-		SUBREDDITS.get(account).add(General.asciiLowercase(RedditSubreddit.stripRPrefix(name)));
-	}
+	private static final HashMap<RedditAccount, HashSet<SubredditCanonicalId>> SUBREDDITS
+			= new HashMap<>();
 
-	public static synchronized ArrayList<String> getSubredditsSorted(final RedditAccount account)
-	{
-		putDefaultSubreddits(account);
-		final ArrayList<String> result = new ArrayList<>(SUBREDDITS.get(account));
-		Collections.sort(result);
+	private static HashSet<SubredditCanonicalId> getForAccount(final RedditAccount account) {
+
+		HashSet<SubredditCanonicalId> result = SUBREDDITS.get(account);
+
+		if(result == null) {
+			result = new HashSet<>(Constants.Reddit.DEFAULT_SUBREDDITS);
+			SUBREDDITS.put(account, result);
+		}
+
 		return result;
 	}
 
-	private static void putDefaultSubreddits(final RedditAccount account){
-		if (!SUBREDDITS.containsKey(account) || SUBREDDITS.get(account) == null) {
-			SUBREDDITS.put(account, new HashSet<String>());
-		}
-		HashSet<String> personalizedSubreddits = SUBREDDITS.get(account);
-		if (personalizedSubreddits.isEmpty()) {
-			for (final String subreddit : Constants.Reddit.DEFAULT_SUBREDDITS) {
-				try {
-					personalizedSubreddits.add(General.asciiLowercase(RedditSubreddit.stripRPrefix(subreddit)));
-				} catch (final RedditSubreddit.InvalidSubredditNameException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
+	public static synchronized void addSubreddit(
+			final RedditAccount account,
+			final SubredditCanonicalId id) {
+
+		getForAccount(account).add(id);
+	}
+
+	public static synchronized void addSubreddits(
+			final RedditAccount account,
+			final Collection<SubredditCanonicalId> ids) {
+
+		getForAccount(account).addAll(ids);
+	}
+
+	public static synchronized ArrayList<SubredditCanonicalId> getSubredditsSorted(
+			final RedditAccount account) {
+
+		final ArrayList<SubredditCanonicalId> result = new ArrayList<>(getForAccount(
+				account));
+		Collections.sort(result);
+		return result;
 	}
 }

@@ -34,7 +34,8 @@ import org.quantumbadger.redreader.reddit.things.RedditPost;
 import org.quantumbadger.redreader.reddit.url.PostCommentListingURL;
 import org.quantumbadger.redreader.views.RedditPostView;
 
-public class WebViewActivity extends BaseActivity implements RedditPostView.PostSelectionListener {
+public class WebViewActivity extends BaseActivity
+		implements RedditPostView.PostSelectionListener {
 
 	private WebViewFragment webView;
 	public static final int VIEW_IN_BROWSER = 10,
@@ -44,6 +45,7 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 
 	private RedditPost mPost;
 
+	@Override
 	public void onCreate(final Bundle savedInstanceState) {
 
 		PrefsUtility.applyTheme(this);
@@ -52,7 +54,7 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 
 		final Intent intent = getIntent();
 
-		String url = intent.getStringExtra("url");
+		final String url = intent.getStringExtra("url");
 		mPost = intent.getParcelableExtra("post");
 
 		if(url == null) {
@@ -63,14 +65,17 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 
 		setBaseActivityContentView(View.inflate(this, R.layout.main_single, null));
 
-		getSupportFragmentManager().beginTransaction().add(R.id.main_single_frame, webView).commit();
+		getSupportFragmentManager().beginTransaction()
+				.add(R.id.main_single_frame, webView)
+				.commit();
 	}
 
 	@Override
 	public void onBackPressed() {
 
-		if(General.onBackPressed() && !webView.onBackButtonPressed())
+		if(General.onBackPressed() && !webView.onBackButtonPressed()) {
 			super.onBackPressed();
+		}
 	}
 
 	public void onPostSelected(final RedditPreparedPost post) {
@@ -78,7 +83,10 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 	}
 
 	public void onPostCommentsSelected(final RedditPreparedPost post) {
-		LinkHandler.onLinkClicked(this, PostCommentListingURL.forPostId(post.src.getIdAlone()).toString(), false);
+		LinkHandler.onLinkClicked(
+				this,
+				PostCommentListingURL.forPostId(post.src.getIdAlone()).toString(),
+				false);
 	}
 
 	@Override
@@ -96,8 +104,11 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 						startActivity(intent);
 						finish(); //to clear from backstack
 
-					} catch(Exception e) {
-						Toast.makeText(this, "Error: could not launch browser.", Toast.LENGTH_LONG).show();
+					} catch(final Exception e) {
+						Toast.makeText(
+								this,
+								"Error: could not launch browser.",
+								Toast.LENGTH_LONG).show();
 					}
 				}
 				return true;
@@ -105,7 +116,10 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 			case CLEAR_CACHE:
 
 				webView.clearCache();
-				Toast.makeText(this, R.string.web_view_clear_cache_success_toast, Toast.LENGTH_LONG).show();
+				Toast.makeText(
+						this,
+						R.string.web_view_clear_cache_success_toast,
+						Toast.LENGTH_LONG).show();
 				return true;
 
 			case USE_HTTPS:
@@ -122,19 +136,20 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 						return true;
 					}
 
-					LinkHandler.onLinkClicked(this, currentUrl.replace("http://", "https://"), true, mPost);
+					LinkHandler.onLinkClicked(
+							this,
+							currentUrl.replace("http://", "https://"),
+							true,
+							mPost);
 					return true;
 				}
 
 			case SHARE:
-				if (currentUrl != null){
-					final Intent mailer = new Intent(Intent.ACTION_SEND);
-					mailer.setType("text/plain");
-					if (mPost != null){
-						mailer.putExtra(Intent.EXTRA_SUBJECT, mPost.title);
-					}
-					mailer.putExtra(Intent.EXTRA_TEXT, currentUrl);
-					startActivity(Intent.createChooser(mailer, getString(R.string.action_share)));
+				if(currentUrl != null) {
+					LinkHandler.shareText(
+							this,
+							mPost != null ? mPost.title : null,
+							currentUrl);
 				}
 				return true;
 
@@ -144,7 +159,7 @@ public class WebViewActivity extends BaseActivity implements RedditPostView.Post
 	}
 
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
+	public boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add(0, VIEW_IN_BROWSER, 0, R.string.web_view_open_browser);
 		menu.add(0, CLEAR_CACHE, 1, R.string.web_view_clear_cache);
 		menu.add(0, USE_HTTPS, 2, R.string.webview_use_https);

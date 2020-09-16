@@ -17,15 +17,10 @@
 
 package org.quantumbadger.redreader.views.imageview;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.util.Log;
-
 import org.quantumbadger.redreader.common.MutableFloatPoint2D;
-import org.quantumbadger.redreader.common.PrefsUtility;
 import org.quantumbadger.redreader.common.UIThreadRepeatingTimer;
 import org.quantumbadger.redreader.common.collections.Stack;
 import org.quantumbadger.redreader.views.glview.Refreshable;
@@ -53,6 +48,15 @@ public class ImageViewDisplayListManager implements
 
 	private static final long TAP_MAX_DURATION_MS = 225;
 	private static final long DOUBLE_TAP_MAX_GAP_DURATION_MS = 275;
+
+	private static final Bitmap NOT_LOADED_BITMAP;
+
+	static {
+		NOT_LOADED_BITMAP = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+
+		final Canvas notLoadedCanvas = new Canvas(NOT_LOADED_BITMAP);
+		notLoadedCanvas.drawRGB(70, 70, 70);
+	}
 
 	private final Listener mListener;
 
@@ -94,7 +98,8 @@ public class ImageViewDisplayListManager implements
 	private FingerTracker.Finger mPinchFinger1, mPinchFinger2;
 	private final Stack<FingerTracker.Finger> mSpareFingers = new Stack<>(8);
 
-	private final UIThreadRepeatingTimer mDoubleTapGapTimer = new UIThreadRepeatingTimer(50, this);
+	private final UIThreadRepeatingTimer mDoubleTapGapTimer =
+			new UIThreadRepeatingTimer(50, this);
 
 	private long mFirstTapReleaseTime = -1;
 
@@ -104,10 +109,10 @@ public class ImageViewDisplayListManager implements
 
 	private float mScreenDensity = 1;
 
-	private final int mLoadingCheckerboardDarkCol;
-	private final int mLoadingCheckerboardLightCol;
+	public ImageViewDisplayListManager(
+			final ImageTileSource imageTileSource,
+			final Listener listener) {
 
-	public ImageViewDisplayListManager(final Context context, ImageTileSource imageTileSource, Listener listener) {
 		mImageTileSource = imageTileSource;
 		mListener = listener;
 		mHTileCount = mImageTileSource.getHTileCount();
@@ -120,45 +125,24 @@ public class ImageViewDisplayListManager implements
 
 		for(int x = 0; x < mHTileCount; x++) {
 			for(int y = 0; y < mVTileCount; y++) {
-				mTileLoaders[x][y] = new MultiScaleTileManager(imageTileSource, thread, x, y, this);
+				mTileLoaders[x][y] =
+						new MultiScaleTileManager(imageTileSource, thread, x, y, this);
 			}
-		}
-
-		if(PrefsUtility.isNightMode(context)) {
-			mLoadingCheckerboardDarkCol = Color.rgb(70, 70, 70);
-			mLoadingCheckerboardLightCol = Color.rgb(110, 110, 110);
-
-		} else {
-			mLoadingCheckerboardDarkCol = Color.rgb(150, 150, 150);
-			mLoadingCheckerboardLightCol = Color.WHITE;
 		}
 	}
 
 	@Override
-	public synchronized void onGLSceneCreate(RRGLDisplayList scene, RRGLContext glContext, Refreshable refreshable) {
+	public synchronized void onGLSceneCreate(
+			final RRGLDisplayList scene,
+			final RRGLContext glContext,
+			final Refreshable refreshable) {
 
 		mTileVisibility = new boolean[mHTileCount][mVTileCount];
 		mTileLoaded = new boolean[mHTileCount][mVTileCount];
 		mRefreshable = refreshable;
 		mScreenDensity = glContext.getScreenDensity();
 
-		final Bitmap notLoadedBitmap = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888);
-		final Canvas notLoadedCanvas = new Canvas(notLoadedBitmap);
-
-		final Paint lightPaint = new Paint();
-		final Paint darkPaint = new Paint();
-
-		lightPaint.setColor(mLoadingCheckerboardLightCol);
-		darkPaint.setColor(mLoadingCheckerboardDarkCol);
-
-		for(int x = 0; x < 4; x++) {
-			for(int y = 0; y < 4; y++) {
-				final Paint paint = ((x ^ y) & 1) == 0 ? lightPaint : darkPaint;
-				notLoadedCanvas.drawRect(x * 64, y * 64, (x + 1) * 64, (y + 1) * 64, paint);
-			}
-		}
-
-		mNotLoadedTexture = new RRGLTexture(glContext, notLoadedBitmap);
+		mNotLoadedTexture = new RRGLTexture(glContext, NOT_LOADED_BITMAP, false);
 
 		final RRGLRenderableGroup group = new RRGLRenderableGroup();
 
@@ -169,16 +153,33 @@ public class ImageViewDisplayListManager implements
 		for(int x = 0; x < mHTileCount; x++) {
 			for(int y = 0; y < mVTileCount; y++) {
 
-				final RRGLRenderableTexturedQuad quad = new RRGLRenderableTexturedQuad(glContext, mNotLoadedTexture);
+				final RRGLRenderableTexturedQuad quad =
+						new RRGLRenderableTexturedQuad(glContext, mNotLoadedTexture);
 				mTiles[x][y] = quad;
 
-				final RRGLRenderableTranslation translation = new RRGLRenderableTranslation(quad);
-				translation.setPosition(x, y);
+				final RRGLRenderableScale scale = new RRGLRenderableScale(quad);
 
-				final RRGLRenderableScale scale = new RRGLRenderableScale(translation);
-				scale.setScale(mTileSize, mTileSize);
+				int tileWidth = mTileSize;
+				int tileHeight = mTileSize;
 
-				group.add(scale);
+				final int imageWidth = mImageTileSource.getWidth();
+				final int imageHeight = mImageTileSource.getHeight();
+
+				if(x == mHTileCount - 1 && imageWidth % mTileSize != 0) {
+					tileWidth = imageWidth % mTileSize;
+				}
+
+				if(y == mVTileCount - 1 && imageHeight % mTileSize != 0) {
+					tileHeight = imageHeight % mTileSize;
+				}
+
+				scale.setScale(tileWidth, tileHeight);
+
+				final RRGLRenderableTranslation translation =
+						new RRGLRenderableTranslation(scale);
+				translation.setPosition(x * mTileSize, y * mTileSize);
+
+				group.add(translation);
 			}
 		}
 
@@ -193,7 +194,11 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public synchronized void onGLSceneResolutionChange(RRGLDisplayList scene, RRGLContext context, int width, int height) {
+	public synchronized void onGLSceneResolutionChange(
+			final RRGLDisplayList scene,
+			final RRGLContext context,
+			final int width,
+			final int height) {
 
 		mResolutionX = width;
 		mResolutionY = height;
@@ -214,7 +219,9 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public synchronized boolean onGLSceneUpdate(RRGLDisplayList scene, RRGLContext context) {
+	public synchronized boolean onGLSceneUpdate(
+			final RRGLDisplayList scene,
+			final RRGLContext context) {
 
 		if(mScaleAnimation != null) {
 			if(!mScaleAnimation.onStep()) {
@@ -248,31 +255,32 @@ public class ImageViewDisplayListManager implements
 		final float firstVisiblePixelX = -positionOffset.x / scale;
 		final float firstVisiblePixelY = -positionOffset.y / scale;
 
-		final int firstVisibleTileX = (int) Math.floor(firstVisiblePixelX / mTileSize);
-		final int firstVisibleTileY = (int) Math.floor(firstVisiblePixelY / mTileSize);
+		final int firstVisibleTileX = (int)Math.floor(firstVisiblePixelX / mTileSize);
+		final int firstVisibleTileY = (int)Math.floor(firstVisiblePixelY / mTileSize);
 
 		final float lastVisiblePixelX = firstVisiblePixelX + (float)mResolutionX / scale;
 		final float lastVisiblePixelY = firstVisiblePixelY + (float)mResolutionY / scale;
 
-		final int lastVisibleTileX = (int) Math.ceil(lastVisiblePixelX / mTileSize);
-		final int lastVisibleTileY = (int) Math.ceil(lastVisiblePixelY / mTileSize);
+		final int lastVisibleTileX = (int)Math.ceil(lastVisiblePixelX / mTileSize);
+		final int lastVisibleTileY = (int)Math.ceil(lastVisiblePixelY / mTileSize);
 
-		final int desiredScaleIndex = MultiScaleTileManager.sampleSizeToScaleIndex(sampleSize);
+		final int desiredScaleIndex =
+				MultiScaleTileManager.sampleSizeToScaleIndex(sampleSize);
 
 		for(int x = 0; x < mHTileCount; x++) {
 			for(int y = 0; y < mVTileCount; y++) {
 
 				final boolean isTileVisible =
 						x >= firstVisibleTileX
-						&& y >= firstVisibleTileY
-						&& x <= lastVisibleTileX
-						&& y <= lastVisibleTileY;
+								&& y >= firstVisibleTileY
+								&& x <= lastVisibleTileX
+								&& y <= lastVisibleTileY;
 
 				final boolean isTileWanted =
 						x >= firstVisibleTileX - 1
-						&& y >= firstVisibleTileY - 1
-						&& x <= lastVisibleTileX + 1
-						&& y <= lastVisibleTileY + 1;
+								&& y >= firstVisibleTileY - 1
+								&& x <= lastVisibleTileX + 1
+								&& y <= lastVisibleTileY + 1;
 
 				if(isTileWanted && !mTileLoaded[x][y]) {
 					mTileLoaders[x][y].markAsWanted(desiredScaleIndex);
@@ -290,14 +298,18 @@ public class ImageViewDisplayListManager implements
 						if(tile != null) {
 
 							try {
-								final RRGLTexture texture = new RRGLTexture(context, tile);
+								final RRGLTexture texture =
+										new RRGLTexture(context, tile, true);
 								mTiles[x][y].setTexture(texture);
 								texture.releaseReference();
 								mTileLoaded[x][y] = true;
 								tile.recycle();
 
-							} catch(Exception e) {
-								Log.e("ImageViewDisplayListMan", "Exception when creating texture", e);
+							} catch(final Exception e) {
+								Log.e(
+										"ImageViewDisplayListMan",
+										"Exception when creating texture",
+										e);
 							}
 						}
 
@@ -318,7 +330,8 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public void onUIAttach() {}
+	public void onUIAttach() {
+	}
 
 	@Override
 	public void onUIDetach() {
@@ -326,7 +339,7 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public synchronized void onFingerDown(FingerTracker.Finger finger) {
+	public synchronized void onFingerDown(final FingerTracker.Finger finger) {
 
 		if(mScrollbars == null) {
 			return;
@@ -370,8 +383,10 @@ public class ImageViewDisplayListManager implements
 		}
 	}
 
-	private final MutableFloatPoint2D mTmpPoint1_onFingersMoved = new MutableFloatPoint2D();
-	private final MutableFloatPoint2D mTmpPoint2_onFingersMoved = new MutableFloatPoint2D();
+	private final MutableFloatPoint2D mTmpPoint1_onFingersMoved =
+			new MutableFloatPoint2D();
+	private final MutableFloatPoint2D mTmpPoint2_onFingersMoved =
+			new MutableFloatPoint2D();
 
 	@Override
 	public synchronized void onFingersMoved() {
@@ -391,7 +406,8 @@ public class ImageViewDisplayListManager implements
 
 			case DOUBLE_TAP_ONE_FINGER_DOWN: {
 
-				if(mDragFinger.mTotalPosDifference.distanceSquared() >= 400f * mScreenDensity * mScreenDensity) {
+				if(mDragFinger.mTotalPosDifference.distanceSquared()
+						>= 400f * mScreenDensity * mScreenDensity) {
 					mCurrentTouchState = TouchState.DOUBLE_TAP_ONE_FINGER_DRAG;
 				}
 
@@ -405,7 +421,9 @@ public class ImageViewDisplayListManager implements
 
 				mCoordinateHelper.scaleAboutScreenPoint(
 						screenCentre,
-						(float)Math.pow(1.01, mDragFinger.mPosDifference.y / mScreenDensity)
+						(float)Math.pow(
+								1.01,
+								mDragFinger.mPosDifference.y / mScreenDensity)
 				);
 
 				break;
@@ -413,7 +431,8 @@ public class ImageViewDisplayListManager implements
 
 			case ONE_FINGER_DOWN: {
 
-				if(mDragFinger.mTotalPosDifference.distanceSquared() >= 100f * mScreenDensity * mScreenDensity) {
+				if(mDragFinger.mTotalPosDifference.distanceSquared()
+						>= 100f * mScreenDensity * mScreenDensity) {
 					mCurrentTouchState = TouchState.ONE_FINGER_DRAG;
 				}
 
@@ -424,14 +443,18 @@ public class ImageViewDisplayListManager implements
 				if(mBoundsHelper.isMinScale()) {
 					mListener.onHorizontalSwipe(mDragFinger.mTotalPosDifference.x);
 				} else {
-					mCoordinateHelper.translateScreen(mDragFinger.mLastPos, mDragFinger.mCurrentPos);
+					mCoordinateHelper.translateScreen(
+							mDragFinger.mLastPos,
+							mDragFinger.mCurrentPos);
 				}
 				break;
 
 			case TWO_FINGER_PINCH: {
 
-				final double oldDistance = mPinchFinger1.mLastPos.euclideanDistanceTo(mPinchFinger2.mLastPos);
-				final double newDistance = mPinchFinger1.mCurrentPos.euclideanDistanceTo(mPinchFinger2.mCurrentPos);
+				final double oldDistance =
+						mPinchFinger1.mLastPos.euclideanDistanceTo(mPinchFinger2.mLastPos);
+				final double newDistance =
+						mPinchFinger1.mCurrentPos.euclideanDistanceTo(mPinchFinger2.mCurrentPos);
 
 				final MutableFloatPoint2D oldCentre = mTmpPoint1_onFingersMoved;
 				mPinchFinger1.mLastPos.add(mPinchFinger2.mLastPos, oldCentre);
@@ -441,7 +464,7 @@ public class ImageViewDisplayListManager implements
 				mPinchFinger1.mCurrentPos.add(mPinchFinger2.mCurrentPos, newCentre);
 				newCentre.scale(0.5);
 
-				final float scaleDifference = (float) (newDistance / oldDistance);
+				final float scaleDifference = (float)(newDistance / oldDistance);
 
 				mCoordinateHelper.scaleAboutScreenPoint(newCentre, scaleDifference);
 				mCoordinateHelper.translateScreen(oldCentre, newCentre);
@@ -452,7 +475,7 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public synchronized void onFingerUp(FingerTracker.Finger finger) {
+	public synchronized void onFingerUp(final FingerTracker.Finger finger) {
 
 		if(mScrollbars == null) {
 			return;
@@ -519,7 +542,8 @@ public class ImageViewDisplayListManager implements
 
 				if(mSpareFingers.isEmpty()) {
 					mCurrentTouchState = TouchState.ONE_FINGER_DRAG;
-					mDragFinger = (mPinchFinger1 == finger) ? mPinchFinger2 : mPinchFinger1;
+					mDragFinger =
+							(mPinchFinger1 == finger) ? mPinchFinger2 : mPinchFinger1;
 					mPinchFinger1 = null;
 					mPinchFinger2 = null;
 
@@ -534,7 +558,7 @@ public class ImageViewDisplayListManager implements
 		}
 	}
 
-	private void onDoubleTap(MutableFloatPoint2D position) {
+	private void onDoubleTap(final MutableFloatPoint2D position) {
 
 		final float minScale = mBoundsHelper.getMinScale();
 		final float currentScale = mCoordinateHelper.getScale();
@@ -555,15 +579,17 @@ public class ImageViewDisplayListManager implements
 			}
 		}
 
-		mScaleAnimation = new ImageViewScaleAnimation(targetScale, mCoordinateHelper, 15, position);
+		mScaleAnimation =
+				new ImageViewScaleAnimation(targetScale, mCoordinateHelper, 15, position);
 	}
 
 	@Override
-	public void onUIThreadRepeatingTimer(UIThreadRepeatingTimer timer) {
+	public void onUIThreadRepeatingTimer(final UIThreadRepeatingTimer timer) {
 
 		if(mCurrentTouchState == TouchState.DOUBLE_TAP_WAIT_NO_FINGERS_DOWN) {
 
-			if(System.currentTimeMillis() - mFirstTapReleaseTime > DOUBLE_TAP_MAX_GAP_DURATION_MS) {
+			if(System.currentTimeMillis() - mFirstTapReleaseTime
+					> DOUBLE_TAP_MAX_GAP_DURATION_MS) {
 				mListener.onSingleTap();
 				mCurrentTouchState = null;
 				mDoubleTapGapTimer.stopTimer();
@@ -578,7 +604,8 @@ public class ImageViewDisplayListManager implements
 
 		int result = 1;
 
-		while(result <= MultiScaleTileManager.MAX_SAMPLE_SIZE && (1.0 / (result * 2)) > mCoordinateHelper.getScale()) {
+		while(result <= MultiScaleTileManager.MAX_SAMPLE_SIZE
+				&& (1.0 / (result * 2)) > mCoordinateHelper.getScale()) {
 			result *= 2;
 		}
 
@@ -586,7 +613,7 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public void onTileLoaded(int x, int y, int sampleSize) {
+	public void onTileLoaded(final int x, final int y, final int sampleSize) {
 		mRefreshable.refresh();
 	}
 
@@ -596,11 +623,11 @@ public class ImageViewDisplayListManager implements
 	}
 
 	@Override
-	public void onTileLoaderException(Throwable t) {
+	public void onTileLoaderException(final Throwable t) {
 		mListener.onImageViewDLMException(t);
 	}
 
-	public void resetTouchState(){
+	public void resetTouchState() {
 		mCurrentTouchState = null;
 	}
 }

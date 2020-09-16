@@ -40,8 +40,7 @@ public class HtmlViewActivity extends BaseActivity {
 
 		final String html;
 
-		try {
-			final InputStream asset = context.getAssets().open(filename);
+		try(InputStream asset = context.getAssets().open(filename)) {
 
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
 
@@ -64,6 +63,7 @@ public class HtmlViewActivity extends BaseActivity {
 		context.startActivity(intent);
 	}
 
+	@Override
 	public void onCreate(final Bundle savedInstanceState) {
 
 		PrefsUtility.applyTheme(this);
@@ -84,13 +84,16 @@ public class HtmlViewActivity extends BaseActivity {
 
 		setBaseActivityContentView(View.inflate(this, R.layout.main_single, null));
 
-		getSupportFragmentManager().beginTransaction().add(R.id.main_single_frame, webView).commit();
+		getSupportFragmentManager().beginTransaction()
+				.add(R.id.main_single_frame, webView)
+				.commit();
 	}
 
 	@Override
 	public void onBackPressed() {
 
-		if(General.onBackPressed() && !webView.onBackButtonPressed())
+		if(General.onBackPressed() && !webView.onBackButtonPressed()) {
 			super.onBackPressed();
+		}
 	}
 }

@@ -18,13 +18,10 @@
 package org.quantumbadger.redreader.views;
 
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,26 +42,8 @@ import org.quantumbadger.redreader.reddit.prepared.RedditParsedComment;
 import org.quantumbadger.redreader.reddit.prepared.RedditRenderableComment;
 
 
-public class RedditCommentView extends FlingableItemView implements RedditChangeDataManager.Listener{
-
-	private static final Handler HANDLER = new Handler(Looper.getMainLooper()) {
-		@Override
-		public void handleMessage(Message msg) {
-
-			switch(msg.what) {
-				case HANDLER_REQUEST_COMMENT_CHANGED: {
-					final RedditCommentView rcv = (RedditCommentView) msg.obj;
-					rcv.update();
-					break;
-				}
-
-				default:
-					throw new RuntimeException("Unknown message type " + msg.what);
-			}
-		}
-	};
-
-	private static final int HANDLER_REQUEST_COMMENT_CHANGED = 1;
+public class RedditCommentView extends FlingableItemView
+		implements RedditChangeDataManager.Listener {
 
 	private RedditCommentListItem mComment;
 
@@ -78,7 +57,7 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 	private final IndentView mIndentView;
 	private final LinearLayout mIndentedContent;
 
-	private final float mFontScale;
+	private final float mBodyFontScale;
 
 	private final boolean mShowLinkButtons;
 
@@ -99,7 +78,9 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 		public final RedditAPICommentAction.RedditCommentAction action;
 		public final int descriptionRes;
 
-		private ActionDescriptionPair(RedditAPICommentAction.RedditCommentAction action, int descriptionRes) {
+		private ActionDescriptionPair(
+				final RedditAPICommentAction.RedditCommentAction action,
+				final int descriptionRes) {
 			this.action = action;
 			this.descriptionRes = descriptionRes;
 		}
@@ -202,9 +183,10 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 
 		final Context context = getContext();
 
-		final PrefsUtility.CommentFlingAction pref = PrefsUtility.pref_behaviour_fling_comment_left(
-				context,
-				PreferenceManager.getDefaultSharedPreferences(context));
+		final PrefsUtility.CommentFlingAction pref =
+				PrefsUtility.pref_behaviour_fling_comment_left(
+						context,
+						PreferenceManager.getDefaultSharedPreferences(context));
 
 		mLeftFlingAction = chooseFlingAction(pref);
 
@@ -221,9 +203,10 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 
 		final Context context = getContext();
 
-		final PrefsUtility.CommentFlingAction pref = PrefsUtility.pref_behaviour_fling_comment_right(
-				context,
-				PreferenceManager.getDefaultSharedPreferences(context));
+		final PrefsUtility.CommentFlingAction pref =
+				PrefsUtility.pref_behaviour_fling_comment_right(
+						context,
+						PreferenceManager.getDefaultSharedPreferences(context));
 
 		mRightFlingAction = chooseFlingAction(pref);
 
@@ -278,6 +261,7 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 
 	public interface CommentListener {
 		void onCommentClicked(RedditCommentView view);
+
 		void onCommentLongClicked(RedditCommentView view);
 	}
 
@@ -297,17 +281,31 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 		mChangeDataManager = RedditChangeDataManager.getInstance(
 				RedditAccountManager.getInstance(context).getDefaultAccount());
 
-		final View rootView = LayoutInflater.from(context).inflate(R.layout.reddit_comment, this, true);
+		final View rootView =
+				LayoutInflater.from(context).inflate(R.layout.reddit_comment, this, true);
 
-		mIndentView = (IndentView)rootView.findViewById(R.id.view_reddit_comment_indentview);
+		mIndentView =
+				(IndentView)rootView.findViewById(R.id.view_reddit_comment_indentview);
 		mHeader = (TextView)rootView.findViewById(R.id.view_reddit_comment_header);
-		mBodyHolder = (FrameLayout)rootView.findViewById(R.id.view_reddit_comment_bodyholder);
-		mIndentedContent = (LinearLayout)rootView.findViewById(R.id.view_reddit_comment_indented_content);
+		mBodyHolder =
+				(FrameLayout)rootView.findViewById(R.id.view_reddit_comment_bodyholder);
+		mIndentedContent =
+				(LinearLayout)rootView.findViewById(R.id.view_reddit_comment_indented_content);
 
-		mFontScale = PrefsUtility.appearance_fontscale_comments(context, PreferenceManager.getDefaultSharedPreferences(context));
-		mHeader.setTextSize(TypedValue.COMPLEX_UNIT_PX, mHeader.getTextSize() * mFontScale);
+		mBodyFontScale = PrefsUtility.appearance_fontscale_bodytext(
+				context,
+				PreferenceManager.getDefaultSharedPreferences(context));
+		final float mHeaderFontScale = PrefsUtility.appearance_fontscale_comment_headers(
+				context,
+				PreferenceManager.getDefaultSharedPreferences(context));
 
-		mShowLinkButtons = PrefsUtility.pref_appearance_linkbuttons(context, PreferenceManager.getDefaultSharedPreferences(context));
+		mHeader.setTextSize(
+				TypedValue.COMPLEX_UNIT_PX,
+				mHeader.getTextSize() * mHeaderFontScale);
+
+		mShowLinkButtons = PrefsUtility.pref_appearance_linkbuttons(
+				context,
+				PreferenceManager.getDefaultSharedPreferences(context));
 
 		setOnClickListener(new OnClickListener() {
 			@Override
@@ -327,18 +325,19 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 
 	@Override
 	public void onRedditDataChange(final String thingIdAndType) {
-		HANDLER.sendMessage(Message.obtain(HANDLER, HANDLER_REQUEST_COMMENT_CHANGED, this));
-	}
-
-	private void update() {
 		reset(mActivity, mComment, true);
 	}
 
-	public void reset(final AppCompatActivity activity, final RedditCommentListItem comment) {
+	public void reset(
+			final AppCompatActivity activity,
+			final RedditCommentListItem comment) {
 		reset(activity, comment, false);
 	}
 
-	public void reset(final AppCompatActivity activity, final RedditCommentListItem comment, final boolean updateOnly) {
+	public void reset(
+			final AppCompatActivity activity,
+			final RedditCommentListItem comment,
+			final boolean updateOnly) {
 
 		if(!updateOnly) {
 			if(!comment.isComment()) {
@@ -360,18 +359,22 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 
 		mIndentView.setIndentation(comment.getIndent());
 
-		final boolean hideLinkButtons = comment.asComment().getParsedComment().getRawComment().author.equalsIgnoreCase("autowikibot");
+		final boolean hideLinkButtons = comment.asComment()
+				.getParsedComment()
+				.getRawComment().author.equalsIgnoreCase(
+						"autowikibot");
 
 		mBodyHolder.removeAllViews();
 		final View commentBody = comment.asComment().getBody(
 				activity,
 				mTheme.rrCommentBodyCol,
-				13.0f * mFontScale,
+				13.0f * mBodyFontScale,
 				mShowLinkButtons && !hideLinkButtons);
 
 		mBodyHolder.addView(commentBody);
 		commentBody.getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
-		((MarginLayoutParams)commentBody.getLayoutParams()).topMargin = General.dpToPixels(activity, 1);
+		((MarginLayoutParams)commentBody.getLayoutParams()).topMargin =
+				General.dpToPixels(activity, 1);
 
 		final RedditRenderableComment renderableComment = mComment.asComment();
 
@@ -382,7 +385,8 @@ public class RedditCommentView extends FlingableItemView implements RedditChange
 
 		if(mComment.isCollapsed(mChangeDataManager)) {
 			setFlingingEnabled(false);
-			mHeader.setText("[ + ]  " + headerText); // Note that this removes formatting (which is fine)
+			mHeader.setText("[ + ]  "
+					+ headerText); // Note that this removes formatting (which is fine)
 			mBodyHolder.setVisibility(GONE);
 
 		} else {

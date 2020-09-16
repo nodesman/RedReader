@@ -18,12 +18,12 @@
 package org.quantumbadger.redreader.adapters;
 
 import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.account.RedditAccountManager;
 import org.quantumbadger.redreader.cache.CacheManager;
@@ -34,27 +34,29 @@ import org.quantumbadger.redreader.common.Constants;
 import org.quantumbadger.redreader.common.General;
 import org.quantumbadger.redreader.common.LinkHandler;
 import org.quantumbadger.redreader.common.PrefsUtility;
+import org.quantumbadger.redreader.common.RRError;
+import org.quantumbadger.redreader.image.AlbumInfo;
 import org.quantumbadger.redreader.image.ImageInfo;
-import org.quantumbadger.redreader.image.ImgurAPI;
 import org.quantumbadger.redreader.viewholders.VH3TextIcon;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.UUID;
 
 public class AlbumAdapter extends RecyclerView.Adapter<VH3TextIcon> {
 
 	private final AppCompatActivity activity;
-	private final ImgurAPI.AlbumInfo albumInfo;
+	private final AlbumInfo albumInfo;
 
-	public AlbumAdapter(final AppCompatActivity activity, final ImgurAPI.AlbumInfo albumInfo) {
+	public AlbumAdapter(final AppCompatActivity activity, final AlbumInfo albumInfo) {
 		this.activity = activity;
 		this.albumInfo = albumInfo;
 	}
 
 	@Override
-	public VH3TextIcon onCreateViewHolder(ViewGroup parent, int viewType) {
-		View v = LayoutInflater.from(parent.getContext())
-			.inflate(R.layout.list_item_3_text_icon, parent, false);
+	public VH3TextIcon onCreateViewHolder(final ViewGroup parent, final int viewType) {
+		final View v = LayoutInflater.from(parent.getContext())
+				.inflate(R.layout.list_item_3_text_icon, parent, false);
 		return new VH3TextIcon(v);
 	}
 
@@ -78,18 +80,25 @@ public class AlbumAdapter extends RecyclerView.Adapter<VH3TextIcon> {
 		}
 
 		if(imageInfo.width != null && imageInfo.height != null) {
-			if(!subtitle.isEmpty()) subtitle += ", ";
+			if(!subtitle.isEmpty()) {
+				subtitle += ", ";
+			}
 			subtitle += imageInfo.width + "x" + imageInfo.height;
 		}
 
 		if(imageInfo.size != null) {
-			if(!subtitle.isEmpty()) subtitle += ", ";
+			if(!subtitle.isEmpty()) {
+				subtitle += ", ";
+			}
 
-			long size = imageInfo.size;
+			final long size = imageInfo.size;
 			if(size < 512 * 1024) {
-				subtitle += String.format("%.1f kB", (float)size / 1024);
+				subtitle += String.format(Locale.US, "%.1f kB", (float)size / 1024);
 			} else {
-				subtitle += String.format("%.1f MB", (float)size / (1024 * 1024));
+				subtitle += String.format(
+						Locale.US,
+						"%.1f MB",
+						(float)size / (1024 * 1024));
 			}
 		}
 
@@ -98,7 +107,7 @@ public class AlbumAdapter extends RecyclerView.Adapter<VH3TextIcon> {
 
 		vh.text2.setText(subtitle);
 
-		if (imageInfo.caption != null && imageInfo.caption.length() > 0) {
+		if(imageInfo.caption != null && imageInfo.caption.length() > 0) {
 			vh.text3.setText(imageInfo.caption);
 			vh.text3.setVisibility(View.VISIBLE);
 		} else {
@@ -109,12 +118,16 @@ public class AlbumAdapter extends RecyclerView.Adapter<VH3TextIcon> {
 
 		final boolean isConnectionWifi = General.isConnectionWifi(activity);
 
-		final PrefsUtility.AppearanceThumbnailsShow thumbnailsPref = PrefsUtility.appearance_thumbnails_show(
-			activity,
-			PreferenceManager.getDefaultSharedPreferences(activity));
+		final PrefsUtility.AppearanceThumbnailsShow thumbnailsPref
+				= PrefsUtility.appearance_thumbnails_show(
+				activity,
+				PreferenceManager.getDefaultSharedPreferences(activity));
 
-		final boolean downloadThumbnails = thumbnailsPref == PrefsUtility.AppearanceThumbnailsShow.ALWAYS
-			|| (thumbnailsPref == PrefsUtility.AppearanceThumbnailsShow.WIFIONLY && isConnectionWifi);
+		final boolean downloadThumbnails = thumbnailsPref
+				== PrefsUtility.AppearanceThumbnailsShow.ALWAYS
+				|| (thumbnailsPref
+				== PrefsUtility.AppearanceThumbnailsShow.WIFIONLY
+				&& isConnectionWifi);
 
 		if(!downloadThumbnails || imageInfo.urlBigSquare == null) {
 			vh.icon.setVisibility(View.GONE);
@@ -141,51 +154,72 @@ public class AlbumAdapter extends RecyclerView.Adapter<VH3TextIcon> {
 				}
 
 				@Override
-				protected void onDownloadNecessary() {}
+				protected void onDownloadNecessary() {
+				}
 
 				@Override
-				protected void onDownloadStarted() {}
+				protected void onDownloadStarted() {
+				}
 
 				@Override
-				protected void onFailure(final @CacheRequest.RequestFailureType int type, final Throwable t, final Integer status, final String readableMessage) {
+				protected void onFailure(
+						final @CacheRequest.RequestFailureType int type,
+						final Throwable t,
+						final Integer status,
+						final String readableMessage) {
 					Log.e("AlbumAdapter", "Failed to fetch thumbnail " + url.toString());
 				}
 
 				@Override
-				protected void onProgress(final boolean authorizationInProgress, final long bytesRead, final long totalBytes) {}
+				protected void onProgress(
+						final boolean authorizationInProgress,
+						final long bytesRead,
+						final long totalBytes) {
+				}
 
 				@Override
-				protected void onSuccess(final CacheManager.ReadableCacheFile cacheFile, final long timestamp, final UUID session, final boolean fromCache, final String mimetype) {
-					// TODO post message rather than runnable
-					AndroidCommon.UI_THREAD_HANDLER.post(new Runnable() {
-						@Override
-						public void run() {
-							try {
-								if(vh.bindingId == bindingId) {
-									vh.icon.setImageURI(cacheFile.getUri());
-								}
-							} catch(IOException e) {
-								throw new RuntimeException(e);
+				protected void onSuccess(
+						final CacheManager.ReadableCacheFile cacheFile,
+						final long timestamp,
+						final UUID session,
+						final boolean fromCache,
+						final String mimetype) {
+					AndroidCommon.UI_THREAD_HANDLER.post(() -> {
+						try {
+							if(vh.bindingId == bindingId) {
+								vh.icon.setImageURI(cacheFile.getUri());
 							}
+						} catch(final IOException e) {
+							throw new RuntimeException(e);
 						}
 					});
 				}
 			});
 		}
 
-		vh.itemView.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				LinkHandler.onLinkClicked(activity, imageInfo.urlOriginal, false, null,
-					albumInfo, vh.getAdapterPosition());
-			}
-		});
-		vh.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-			@Override
-			public boolean onLongClick(View v) {
-				LinkHandler.onLinkLongClicked(activity, imageInfo.urlOriginal, false);
-				return true;
-			}
+		if(imageInfo.urlOriginal != null) {
+			vh.itemView.setOnClickListener(v -> LinkHandler.onLinkClicked(
+					activity,
+					imageInfo.urlOriginal,
+					false,
+					null,
+					albumInfo,
+					vh.getAdapterPosition()));
+
+		} else {
+			vh.itemView.setOnClickListener(v -> General.showResultDialog(
+					activity,
+					new RRError(
+							activity.getString(R.string.image_gallery_no_image_present_title),
+							activity.getString(R.string.image_gallery_no_image_present_message),
+							new RuntimeException(),
+							null,
+							albumInfo.url)));
+		}
+
+		vh.itemView.setOnLongClickListener(v -> {
+			LinkHandler.onLinkLongClicked(activity, imageInfo.urlOriginal, false);
+			return true;
 		});
 
 	}

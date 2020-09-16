@@ -20,7 +20,6 @@ package org.quantumbadger.redreader.activities;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -61,6 +60,7 @@ public class CommentListingActivity extends RefreshableActivity
 
 	private CommentListingFragment mFragment;
 
+	@Override
 	public void onCreate(final Bundle savedInstanceState) {
 
 		PrefsUtility.applyTheme(this);
@@ -77,7 +77,9 @@ public class CommentListingActivity extends RefreshableActivity
 
 			final String url = intent.getDataString();
 			final String searchString = intent.getStringExtra(EXTRA_SEARCH_STRING);
-			controller = new CommentListingController(RedditURLParser.parseProbableCommentListing(Uri.parse(url)), this);
+			controller = new CommentListingController(
+					RedditURLParser.parseProbableCommentListing(Uri.parse(url)),
+					this);
 			controller.setSearchString(searchString);
 
 			Bundle fragmentSavedInstanceState = null;
@@ -85,7 +87,8 @@ public class CommentListingActivity extends RefreshableActivity
 			if(savedInstanceState != null) {
 
 				if(savedInstanceState.containsKey(SAVEDSTATE_SESSION)) {
-					controller.setSession(UUID.fromString(savedInstanceState.getString(SAVEDSTATE_SESSION)));
+					controller.setSession(UUID.fromString(savedInstanceState.getString(
+							SAVEDSTATE_SESSION)));
 				}
 
 				if(savedInstanceState.containsKey(SAVEDSTATE_SORT)) {
@@ -94,7 +97,8 @@ public class CommentListingActivity extends RefreshableActivity
 				}
 
 				if(savedInstanceState.containsKey(SAVEDSTATE_FRAGMENT)) {
-					fragmentSavedInstanceState = savedInstanceState.getBundle(SAVEDSTATE_FRAGMENT);
+					fragmentSavedInstanceState = savedInstanceState.getBundle(
+							SAVEDSTATE_FRAGMENT);
 				}
 			}
 
@@ -156,7 +160,10 @@ public class CommentListingActivity extends RefreshableActivity
 	}
 
 	@Override
-	protected void doRefresh(final RefreshableFragment which, final boolean force, final Bundle savedInstanceState) {
+	protected void doRefresh(
+			final RefreshableFragment which,
+			final boolean force,
+			final Bundle savedInstanceState) {
 		mFragment = controller.get(this, force, savedInstanceState);
 
 		final View view = mFragment.getView();
@@ -173,7 +180,10 @@ public class CommentListingActivity extends RefreshableActivity
 	}
 
 	public void onPastComments() {
-		final SessionListDialog sessionListDialog = SessionListDialog.newInstance(controller.getUri(), controller.getSession(), SessionChangeListener.SessionChangeType.COMMENTS);
+		final SessionListDialog sessionListDialog = SessionListDialog.newInstance(
+				controller.getUri(),
+				controller.getSession(),
+				SessionChangeListener.SessionChangeType.COMMENTS);
 		sessionListDialog.show(getSupportFragmentManager(), null);
 	}
 
@@ -189,13 +199,10 @@ public class CommentListingActivity extends RefreshableActivity
 
 	@Override
 	public void onSearchComments() {
-		DialogUtils.showSearchDialog(this, new DialogUtils.OnSearchListener() {
-			@Override
-			public void onSearch(@Nullable String query) {
-				Intent searchIntent = getIntent();
-				searchIntent.putExtra(EXTRA_SEARCH_STRING, query);
-				startActivity(searchIntent);
-			}
+		DialogUtils.showSearchDialog(this, query -> {
+			final Intent searchIntent = getIntent();
+			searchIntent.putExtra(EXTRA_SEARCH_STRING, query);
+			startActivity(searchIntent);
 		});
 	}
 
@@ -211,17 +218,25 @@ public class CommentListingActivity extends RefreshableActivity
 		return super.onOptionsItemSelected(item);
 	}
 
-	public void onSessionRefreshSelected(SessionChangeType type) {
+	public void onSessionRefreshSelected(final SessionChangeType type) {
 		onRefreshComments();
 	}
 
-	public void onSessionSelected(UUID session, SessionChangeType type) {
+	public void onSessionSelected(final UUID session, final SessionChangeType type) {
 		controller.setSession(session);
 		requestRefresh(RefreshableFragment.COMMENTS, false);
 	}
 
-	public void onSessionChanged(UUID session, SessionChangeType type, long timestamp) {
-		Log.i(TAG, type.name() + " session changed to " + (session != null ? session.toString() : "<null>"));
+	public void onSessionChanged(
+			final UUID session,
+			final SessionChangeType type,
+			final long timestamp) {
+
+		Log.i(
+				TAG,
+				type.name() + " session changed to " + (session != null
+						? session.toString()
+						: "<null>"));
 		controller.setSession(session);
 	}
 
@@ -230,11 +245,16 @@ public class CommentListingActivity extends RefreshableActivity
 	}
 
 	public void onPostCommentsSelected(final RedditPreparedPost post) {
-		LinkHandler.onLinkClicked(this, PostCommentListingURL.forPostId(post.src.getIdAlone()).toString(), false);
+		LinkHandler.onLinkClicked(
+				this,
+				PostCommentListingURL.forPostId(post.src.getIdAlone()).toString(),
+				false);
 	}
 
 	@Override
 	public void onBackPressed() {
-		if(General.onBackPressed()) super.onBackPressed();
+		if(General.onBackPressed()) {
+			super.onBackPressed();
+		}
 	}
 }

@@ -23,6 +23,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
+import android.preference.PreferenceManager;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -32,10 +35,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.common.General;
+import org.quantumbadger.redreader.common.PrefsUtility;
 
 public class LinkDetailsView extends FrameLayout {
 
-	public LinkDetailsView(Context context, final String title, final String subtitle) {
+	public LinkDetailsView(
+			final Context context,
+			@NonNull final String title,
+			@Nullable final String subtitle) {
 
 		super(context);
 
@@ -48,29 +55,42 @@ public class LinkDetailsView extends FrameLayout {
 
 		layout.setGravity(Gravity.CENTER_VERTICAL);
 
-		final TypedArray appearance = context.obtainStyledAttributes(new int[]{R.attr.rrIconLink });
+		final TypedArray appearance
+				= context.obtainStyledAttributes(new int[] {R.attr.rrIconLink});
 		final ImageView icon = new ImageView(context);
 		icon.setImageDrawable(appearance.getDrawable(0));
 		appearance.recycle();
 		layout.addView(icon);
-		((LinearLayout.LayoutParams)icon.getLayoutParams()).setMargins(marginPx, marginPx, marginPx, marginPx);
+		((LinearLayout.LayoutParams)icon.getLayoutParams()).setMargins(
+				marginPx,
+				marginPx,
+				marginPx,
+				marginPx);
 
 		final LinearLayout textLayout = new LinearLayout(context);
 		textLayout.setOrientation(LinearLayout.VERTICAL);
 		layout.addView(textLayout);
-		((LinearLayout.LayoutParams)textLayout.getLayoutParams()).setMargins(0, marginPx, marginPx, marginPx);
+		((LinearLayout.LayoutParams)textLayout.getLayoutParams()).setMargins(
+				0,
+				marginPx,
+				marginPx,
+				marginPx);
+
+		final float linkFontScale = PrefsUtility.appearance_fontscale_linkbuttons(
+				context,
+				PreferenceManager.getDefaultSharedPreferences(context));
 
 		{
 			final TextView titleView = new TextView(context);
 			titleView.setText(title);
-			titleView.setTextSize(15f); // TODO scale with comment
+			titleView.setTextSize(15f * linkFontScale);
 			textLayout.addView(titleView);
 		}
 
 		if(subtitle != null && !title.equals(subtitle)) {
 			final TextView subtitleView = new TextView(context);
 			subtitleView.setText(subtitle);
-			subtitleView.setTextSize(11f); // TODO scale with comment
+			subtitleView.setTextSize(11f * linkFontScale);
 			textLayout.addView(subtitleView);
 		}
 

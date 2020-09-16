@@ -20,8 +20,8 @@ package org.quantumbadger.redreader.fragments;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -54,12 +54,18 @@ public abstract class RRFragment {
 		mParent.startActivity(intent);
 	}
 
-	protected final void startActivityForResult(final Intent intent, final int requestCode) {
+	protected final void startActivityForResult(
+			final Intent intent,
+			final int requestCode) {
 		mParent.startActivityForResult(intent, requestCode);
 	}
 
-	public void onCreateOptionsMenu(Menu menu) {}
-	public boolean onOptionsItemSelected(MenuItem item) {return false;}
+	public void onCreateOptionsMenu(final Menu menu) {
+	}
+
+	public boolean onOptionsItemSelected(final MenuItem item) {
+		return false;
+	}
 
 	public abstract View getView();
 

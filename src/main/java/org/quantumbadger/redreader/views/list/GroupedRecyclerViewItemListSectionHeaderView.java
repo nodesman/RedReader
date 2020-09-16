@@ -17,15 +17,20 @@
 
 package org.quantumbadger.redreader.views.list;
 
-import android.support.annotation.NonNull;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.NonNull;
+import androidx.core.view.AccessibilityDelegateCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import org.quantumbadger.redreader.R;
 import org.quantumbadger.redreader.adapters.GroupedRecyclerViewAdapter;
 
-public class GroupedRecyclerViewItemListSectionHeaderView extends GroupedRecyclerViewAdapter.Item {
+public class GroupedRecyclerViewItemListSectionHeaderView
+		extends GroupedRecyclerViewAdapter.Item {
 
 	@NonNull private final CharSequence mText;
 
@@ -47,7 +52,8 @@ public class GroupedRecyclerViewItemListSectionHeaderView extends GroupedRecycle
 				LayoutInflater.from(viewGroup.getContext()).inflate(
 						R.layout.list_sectionheader,
 						viewGroup,
-						false)) {};
+						false)) {
+		};
 	}
 
 	@Override
@@ -55,6 +61,17 @@ public class GroupedRecyclerViewItemListSectionHeaderView extends GroupedRecycle
 
 		final TextView view = (TextView)viewHolder.itemView;
 		view.setText(mText);
+
+		//From https://stackoverflow.com/a/54082384
+		ViewCompat.setAccessibilityDelegate(view, new AccessibilityDelegateCompat() {
+			@Override
+			public void onInitializeAccessibilityNodeInfo(
+					final View host,
+					final AccessibilityNodeInfoCompat info) {
+				super.onInitializeAccessibilityNodeInfo(host, info);
+				info.setHeading(true);
+			}
+		});
 	}
 
 	@Override

@@ -18,8 +18,8 @@
 package org.quantumbadger.redreader.reddit;
 
 import android.content.Context;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
 import org.quantumbadger.redreader.account.RedditAccountManager;
@@ -149,7 +149,8 @@ public class RedditCommentListItem extends GroupedRecyclerViewAdapter.Item {
 	public boolean isHidden(final RedditChangeDataManager changeDataManager) {
 
 		if(mParent != null) {
-			return mParent.isCollapsed(changeDataManager) || mParent.isHidden(changeDataManager);
+			return mParent.isCollapsed(changeDataManager) || mParent.isHidden(
+					changeDataManager);
 		}
 
 		return false;
@@ -191,7 +192,8 @@ public class RedditCommentListItem extends GroupedRecyclerViewAdapter.Item {
 			throw new RuntimeException("Unknown item type");
 		}
 
-		return new RecyclerView.ViewHolder(view) {};
+		return new RecyclerView.ViewHolder(view) {
+		};
 	}
 
 	@Override
